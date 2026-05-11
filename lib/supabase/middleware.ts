@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from '@/lib/types/database'
 
+const PUBLIC_PATHS = ['/login', '/auth/callback']
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -25,15 +27,14 @@ export async function updateSession(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
 
-  // Protect app routes
-  if (!user && pathname.startsWith('/trips')) {
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
+
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect authed users away from auth pages
   if (user && (pathname === '/login' || pathname === '/')) {
     return NextResponse.redirect(new URL('/trips', request.url))
   }
