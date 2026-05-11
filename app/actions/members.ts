@@ -3,6 +3,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function leaveTrip(tripId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+  const db = createServiceClient()
+  const { data: me } = await db.from('trip_members').select('role').eq('trip_id', tripId).eq('user_id', user.id).single()
+  if (!me) return { error: 'Not a member' }
+  if (me.role === 'owner') return { error: 'Owner cannot leave. Transfer ownership first.' }
+  await db.from('trip_members').delete().eq('trip_id', tripId).eq('user_id', user.id)
+  redirect('/trips')
+}
 
 export async function removeMember(tripId: string, targetUserId: string) {
   const supabase = await createClient()

@@ -23,13 +23,17 @@ export default async function MembersPage({ params }: { params: { tripId: string
     .eq('trip_id', params.tripId)
     .single()
 
+  const perms = permissions ?? { members_can_edit_info: false, members_can_add_itinerary: false, members_can_invite: false, itinerary_visible_to_viewers: false }
+  const canInvite = membership.role === 'owner' || (membership.role === 'member' && perms.members_can_invite)
+
   return (
     <MembersView
       tripId={params.tripId}
       myRole={membership.role}
       members={(members ?? []) as any}
-      permissions={permissions ?? { members_can_edit_info: false, members_can_add_itinerary: false, members_can_invite: false, itinerary_visible_to_viewers: false }}
+      permissions={perms}
       currentUserId={user.id}
+      canInvite={canInvite}
     />
   )
 }

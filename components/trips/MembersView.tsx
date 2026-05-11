@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Crown, Shield, Eye, MoreVertical, UserX, ArrowRightLeft, Link, ToggleLeft, ToggleRight } from 'lucide-react'
-import { removeMember, changeRole, transferOwnership, updateTripPermissions } from '@/app/actions/members'
+import { ChevronLeft, Crown, Shield, Eye, MoreVertical, UserX, ArrowRightLeft, Link, ToggleLeft, ToggleRight, LogOut } from 'lucide-react'
+import { removeMember, changeRole, transferOwnership, updateTripPermissions, leaveTrip } from '@/app/actions/members'
 
 type Member = {
   id: string
@@ -26,17 +26,19 @@ type Props = {
   members: Member[]
   permissions: Permissions
   currentUserId: string
+  canInvite: boolean
 }
 
 const roleIcon = { owner: Crown, member: Shield, viewer: Eye }
 const roleLabel = { owner: 'Owner', member: 'Member', viewer: 'Viewer' }
 const roleColor = { owner: 'text-amber-500', member: 'text-primary', viewer: 'text-muted-foreground' }
 
-export default function MembersView({ tripId, myRole, members, permissions: initialPerms, currentUserId }: Props) {
+export default function MembersView({ tripId, myRole, members, permissions: initialPerms, currentUserId, canInvite }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [transferTarget, setTransferTarget] = useState<string | null>(null)
+  const [showLeave, setShowLeave] = useState(false)
   const [error, setError] = useState('')
   const [perms, setPerms] = useState(initialPerms)
 
@@ -63,6 +65,12 @@ export default function MembersView({ tripId, myRole, members, permissions: init
     startTransition(async () => {
       const res = await transferOwnership(tripId, userId)
       if (res.error) setError(res.error)
+    })
+  }
+
+  function handleLeave() {
+    startTransition(async () => {
+      await leaveTrip(tripId)
     })
   }
 
@@ -183,12 +191,45 @@ export default function MembersView({ tripId, myRole, members, permissions: init
         </div>
       )}
 
-      {isOwner && (
+      {canInvite && (
         <button onClick={() => router.push(`/trips/${tripId}/invite`)}
           className="mt-4 w-full h-13 rounded-2xl border border-primary text-primary font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
           <Link className="w-4 h-4" /> Invite someone
         </button>
       )}
+
+      {!isOwner && (
+        <button onClick={() => setShowLeave(true)}
+          className="mt-3 w-full h-13 rounded-2xl border border-destructive/40 text-destructive font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+          <LogOut className="w-4 h-4" /> Leave trip
+        </button>
+      )}
+
+      {/* Leave trip confirmation */}
+      <AnimatePresence>
+        {showLeave && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[60] flex items-end"
+            onClick={() => setShowLeave(false)}>
+            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+              className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"
+              onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold mb-2">Leave this trip?</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                You&apos;ll lose access to all trip content. The owner can re-invite you.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowLeave(false)}
+                  className="flex-1 h-12 rounded-2xl border border-border text-sm font-medium">Stay</button>
+                <button onClick={handleLeave} disabled={isPending}
+                  className="flex-1 h-12 rounded-2xl bg-destructive text-white text-sm font-semibold disabled:opacity-50">
+                  Leave
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Transfer ownership confirmation */}
       <AnimatePresence>
