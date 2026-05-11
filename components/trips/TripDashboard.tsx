@@ -51,7 +51,7 @@ const cards = [
 ]
 
 export default function TripDashboard({
-  trip, role, members, permissions, unreadCount, userId
+  trip, role, members, permissions, unreadCount, userId, netBalance
 }: {
   trip: Trip
   role: string
@@ -59,6 +59,7 @@ export default function TripDashboard({
   permissions: any
   unreadCount: number
   userId: string
+  netBalance: number
 }) {
   const router = useRouter()
   const canInvite = role === 'owner' || (role === 'member' && permissions?.members_can_invite)
@@ -155,6 +156,23 @@ export default function TripDashboard({
             </Link>
           )}
         </div>
+
+        {/* Balance widget — only for non-viewers with expenses */}
+        {role !== 'viewer' && netBalance !== 0 && (
+          <Link href={`/trips/${trip.id}/expenses`}>
+            <div className={`rounded-2xl px-4 py-3 flex items-center justify-between ${netBalance > 0 ? 'bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800'}`}>
+              <div>
+                <p className={`text-xs font-medium ${netBalance > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {netBalance > 0 ? 'You are owed' : 'You owe'}
+                </p>
+                <p className={`text-lg font-bold ${netBalance > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
+                  £{Math.abs(netBalance).toFixed(2)}
+                </p>
+              </div>
+              <Wallet className={`w-5 h-5 ${netBalance > 0 ? 'text-emerald-500' : 'text-rose-500'}`} />
+            </div>
+          </Link>
+        )}
 
         {/* Feature cards grid */}
         <div className="grid grid-cols-2 gap-3">
