@@ -98,6 +98,64 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
   return { success: true }
 }
 
+export async function cancelInvitation(tripId: string, invitationId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const db = createServiceClient()
+  const { data: membership } = await db.from('trip_members').select('role').eq('trip_id', tripId).eq('user_id', user.id).single()
+  if (!membership) return { error: 'Not a member' }
+  if (membership.role !== 'owner') {
+    const { data: perms } = await db.from('trip_permissions').select('members_can_invite').eq('trip_id', tripId).single()
+    if (!perms?.members_can_invite) return { error: 'No permission' }
+  }
+
+  await db.from('invitations').delete().eq('id', invitationId).eq('trip_id', tripId)
+  revalidatePath(`/trips/${tripId}/invite`)
+  return { success: true }
+}
+
+export async function resendInvitationEmail(tripId: string, invitationId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const db = createServiceClient()
+  const { data: inv } = await db.from('invitations').select('*').eq('id', invitationId).eq('trip_id', tripId).single()
+  if (!inv) return { error: 'Invitation not found' }
+
+  const { data: trip } = await db.from('trips').select('name').eq('id', tripId).single()
+  const { data: inviter } = await db.from('users').select('display_name').eq('id', user.id).single()
+
+  try {
+    await resend.emails.send({
+      from: 'Wayfarer <onboarding@resend.dev>',
+      to: inv.invited_email,
+      subject: `Reminder: You've been invited to ${trip?.name} on Wayfarer`,
+      html: `
+        <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+          <div style="background: linear-gradient(135deg, #6366f1, #7c3aed); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
+            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ Wayfarer</h1>
+            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 14px;">Group Holiday Planner</p>
+          </div>
+          <h2 style="font-size: 20px; margin: 0 0 12px; color: #1a1a2e;">Reminder: ${inviter?.display_name ?? 'Someone'} invited you to join a trip!</h2>
+          <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+            You've been invited to <strong>${trip?.name}</strong> on Wayfarer as a <strong>${inv.invited_role}</strong>.
+          </p>
+          <a href="https://wayfarer-plum.vercel.app/login" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
+            View invitation →
+          </a>
+          <p style="color: #94a3b8; font-size: 13px;">Sign in with this email address to see the invitation in your notifications.</p>
+        </div>
+      `,
+    })
+  } catch { return { error: 'Failed to send email' } }
+
+  revalidatePath(`/trips/${tripId}/invite`)
+  return { success: true }
+}
+
 export async function respondToInvitation(invitationId: string, accept: boolean) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

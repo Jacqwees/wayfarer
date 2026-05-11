@@ -353,7 +353,7 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
       <AnimatePresence>
         {showAdd && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-end"
+            className="fixed inset-0 bg-black/50 z-[60] flex items-end"
             onClick={() => setShowAdd(false)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
@@ -467,7 +467,7 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
       <AnimatePresence>
         {payTarget && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-end"
+            className="fixed inset-0 bg-black/50 z-[60] flex items-end"
             onClick={() => setPayTarget(null)}>
             <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
               className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"

@@ -3,16 +3,26 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Mail, Send, CheckCircle2, Loader2 } from 'lucide-react'
-import { sendInvitation } from '@/app/actions/invitations'
+import { ChevronLeft, Mail, Send, CheckCircle2, Loader2, Clock, X, RotateCcw } from 'lucide-react'
+import { sendInvitation, cancelInvitation, resendInvitationEmail } from '@/app/actions/invitations'
 
-export default function InviteForm({ tripId, tripName }: { tripId: string; tripName: string }) {
+type PendingInvitation = { id: string; invited_email: string; invited_role: string; created_at: string }
+
+export default function InviteForm({ tripId, tripName, pendingInvitations: initial }: {
+  tripId: string
+  tripName: string
+  pendingInvitations: PendingInvitation[]
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'member' | 'viewer'>('member')
   const [error, setError] = useState('')
   const [sent, setSent] = useState<string[]>([])
+  const [pending, setPending] = useState(initial)
+  const [resendingId, setResendingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [resendOk, setResendOk] = useState<string | null>(null)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -22,7 +32,31 @@ export default function InviteForm({ tripId, tripName }: { tripId: string; tripN
       const res = await sendInvitation(tripId, email.trim(), role)
       if (res.error) { setError(res.error); return }
       setSent(s => [...s, email.trim()])
+      setPending(p => [...p, {
+        id: Math.random().toString(),
+        invited_email: email.trim(),
+        invited_role: role,
+        created_at: new Date().toISOString(),
+      }])
       setEmail('')
+    })
+  }
+
+  function handleCancel(id: string) {
+    setCancellingId(null)
+    startTransition(async () => {
+      await cancelInvitation(tripId, id)
+      setPending(p => p.filter(x => x.id !== id))
+    })
+  }
+
+  function handleResend(id: string) {
+    setResendOk(null)
+    startTransition(async () => {
+      setResendingId(id)
+      const res = await resendInvitationEmail(tripId, id)
+      setResendingId(null)
+      if (!res.error) setResendOk(id)
     })
   }
 
@@ -72,16 +106,85 @@ export default function InviteForm({ tripId, tripName }: { tripId: string; tripN
         </button>
       </form>
 
+      {/* Pending invitations */}
+      <AnimatePresence>
+        {pending.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pending invitations</p>
+            {pending.map(inv => (
+              <div key={inv.id} className="bg-card border border-border rounded-2xl px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{inv.invited_email}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground capitalize">{inv.invited_role} · Pending</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => handleResend(inv.id)}
+                      disabled={isPending}
+                      className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-xl bg-primary/10 text-primary transition-colors disabled:opacity-50"
+                    >
+                      {resendingId === inv.id
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : resendOk === inv.id
+                          ? <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                          : <RotateCcw className="w-3 h-3" />}
+                      {resendOk === inv.id ? 'Sent' : 'Resend'}
+                    </button>
+                    <button
+                      onClick={() => setCancellingId(inv.id)}
+                      disabled={isPending}
+                      className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded-xl bg-destructive/10 text-destructive transition-colors disabled:opacity-50"
+                    >
+                      <X className="w-3 h-3" /> Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Previously sent this session */}
       <AnimatePresence>
         {sent.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Invitations sent</p>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Just sent</p>
             {sent.map(e => (
               <div key={e} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span className="text-sm text-foreground">{e}</span>
               </div>
             ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel confirmation sheet */}
+      <AnimatePresence>
+        {cancellingId && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-[60] flex items-end"
+            onClick={() => setCancellingId(null)}>
+            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+              className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"
+              onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold mb-2">Cancel invitation?</h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                {pending.find(x => x.id === cancellingId)?.invited_email} will no longer be able to join with this invite.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setCancellingId(null)} className="flex-1 h-12 rounded-2xl border border-border text-sm font-medium">Keep</button>
+                <button onClick={() => handleCancel(cancellingId)} disabled={isPending}
+                  className="flex-1 h-12 rounded-2xl bg-destructive text-white text-sm font-semibold disabled:opacity-50">
+                  Cancel invite
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

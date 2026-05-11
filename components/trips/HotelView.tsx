@@ -181,7 +181,7 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
         <AnimatePresence>
           {form && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50 flex items-end"
+              className="fixed inset-0 bg-black/50 z-[60] flex items-end"
               onClick={() => setForm(null)}>
               <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
@@ -254,7 +254,7 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
         <AnimatePresence>
           {deleteId && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50 flex items-end"
+              className="fixed inset-0 bg-black/50 z-[60] flex items-end"
               onClick={() => setDeleteId(null)}>
               <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
                 className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"
