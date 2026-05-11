@@ -14,5 +14,5 @@ export default async function NotificationsPage() {
     .order('created_at', { ascending: false })
     .limit(100)
 
-  return <NotificationsView notifications={notifications ?? []} />
+  return <NotificationsView notifications={notifications ?? []} userId={user.id} />
 }

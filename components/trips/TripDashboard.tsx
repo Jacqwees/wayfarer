@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   ChevronLeft, Plane, Hotel, CalendarDays, MapPin,
-  Wallet, Users, Bell, UserPlus, Settings
+  Wallet, Users, Bell, UserPlus, Settings, PackageCheck
 } from 'lucide-react'
 
 type Trip = {
@@ -47,6 +47,7 @@ const cards = [
   { label: 'Itinerary', icon: CalendarDays, href: 'itinerary', color: 'bg-violet-100 text-violet-600' },
   { label: 'Things To Do', icon: MapPin, href: 'places', color: 'bg-emerald-100 text-emerald-600' },
   { label: 'Expenses', icon: Wallet, href: 'expenses', color: 'bg-rose-100 text-rose-600' },
+  { label: 'Packing', icon: PackageCheck, href: 'packing', color: 'bg-teal-100 text-teal-600' },
   { label: 'Members', icon: Users, href: 'members', color: 'bg-indigo-100 text-indigo-600' },
 ]
 

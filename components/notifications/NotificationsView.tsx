@@ -18,7 +18,7 @@ type Notification = {
   created_at: string
 }
 
-type Props = { notifications: Notification[] }
+type Props = { notifications: Notification[]; userId: string }
 
 const typeConfig: Record<string, { icon: any; color: string }> = {
   trip_invitation: { icon: UserPlus, color: 'text-primary' },
@@ -39,7 +39,7 @@ function timeAgo(dt: string) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-export default function NotificationsView({ notifications: initial }: Props) {
+export default function NotificationsView({ notifications: initial, userId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [notifications, setNotifications] = useState(initial)
@@ -49,16 +49,15 @@ export default function NotificationsView({ notifications: initial }: Props) {
 
   useEffect(() => {
     const supabase = createClient()
-    const userId = initial[0]?.id ? undefined : undefined // we don't have userId here, subscribe broadly and filter client-side
     const channel = supabase
-      .channel('rt-my-notifications')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
+      .channel(`rt-my-notifications-${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, payload => {
         const n = payload.new as Notification
         setNotifications(prev => [n, ...prev])
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [])
+  }, [userId])
 
   function markRead(id: string) {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n))

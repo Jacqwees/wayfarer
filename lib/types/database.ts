@@ -498,6 +498,39 @@ export type Database = {
         }
         Relationships: []
       }
+      packing_items: {
+        Row: {
+          id: string
+          trip_id: string
+          label: string
+          packed: boolean
+          assigned_to: string | null
+          added_by: string
+          packed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          trip_id: string
+          label: string
+          packed?: boolean
+          assigned_to?: string | null
+          added_by: string
+          packed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          trip_id?: string
+          label?: string
+          packed?: boolean
+          assigned_to?: string | null
+          added_by?: string
+          packed_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
