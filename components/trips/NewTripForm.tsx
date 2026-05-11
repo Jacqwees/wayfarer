@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Upload, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { ChevronLeft, MapPin, ImagePlus, X, Loader2 } from 'lucide-react'
+import Script from 'next/script'
+import { createTrip, getUploadUrl } from '@/app/actions/trips'
 
 type PlaceSuggestion = {
   place_id: string
@@ -13,8 +14,9 @@ type PlaceSuggestion = {
   lng?: number
 }
 
-export default function NewTripForm({ userId }: { userId: string }) {
+export default function NewTripForm() {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [name, setName] = useState('')
   const [destination, setDestination] = useState('')
   const [destinationData, setDestinationData] = useState<PlaceSuggestion | null>(null)
@@ -22,83 +24,71 @@ export default function NewTripForm({ userId }: { userId: string }) {
   const [endDate, setEndDate] = useState('')
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
-  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
-  const autocompleteTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mapsLoaded = useRef(false)
 
-  // Google Places autocomplete via REST
-  async function fetchSuggestions(input: string) {
-    if (input.length < 2) { setSuggestions([]); return }
-    if (typeof window !== 'undefined' && (window as any).google?.maps?.places) {
-      const service = new (window as any).google.maps.places.AutocompleteService()
-      service.getPlacePredictions(
-        { input, types: ['(cities)'] },
-        (preds: any[], status: string) => {
-          if (status === 'OK') {
-            setSuggestions(preds.map((p: any) => ({ place_id: p.place_id, description: p.description })))
-          }
-        }
-      )
-    }
-  }
-
-  async function resolveLatLng(placeId: string): Promise<{ lat: number; lng: number } | null> {
-    return new Promise((resolve) => {
-      if (!(window as any).google?.maps?.places) { resolve(null); return }
-      const service = new (window as any).google.maps.places.PlacesService(
-        document.createElement('div')
-      )
-      service.getDetails({ placeId, fields: ['geometry'] }, (place: any, status: string) => {
-        if (status === 'OK' && place?.geometry?.location) {
-          resolve({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() })
-        } else {
-          resolve(null)
-        }
-      })
-    })
+  function onMapsLoaded() {
+    mapsLoaded.current = true
   }
 
   function handleDestinationChange(val: string) {
     setDestination(val)
     setDestinationData(null)
-    if (autocompleteTimeout.current) clearTimeout(autocompleteTimeout.current)
-    autocompleteTimeout.current = setTimeout(() => fetchSuggestions(val), 300)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val.length < 2) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(() => {
+      if (!(window as any).google?.maps?.places) return
+      const svc = new (window as any).google.maps.places.AutocompleteService()
+      svc.getPlacePredictions({ input: val, types: ['(cities)'] }, (preds: any[], status: string) => {
+        if (status === 'OK') setSuggestions(preds.map((p: any) => ({ place_id: p.place_id, description: p.description })))
+      })
+    }, 300)
   }
 
   async function selectSuggestion(s: PlaceSuggestion) {
     setDestination(s.description)
     setSuggestions([])
-    const coords = await resolveLatLng(s.place_id)
-    setDestinationData({ ...s, ...coords ?? {} })
+    if (!(window as any).google?.maps?.places) { setDestinationData(s); return }
+    const svc = new (window as any).google.maps.places.PlacesService(document.createElement('div'))
+    svc.getDetails({ placeId: s.place_id, fields: ['geometry'] }, (place: any, status: string) => {
+      if (status === 'OK' && place?.geometry?.location) {
+        setDestinationData({ ...s, lat: place.geometry.location.lat(), lng: place.geometry.location.lng() })
+      } else {
+        setDestinationData(s)
+      }
+    })
   }
 
   async function handleCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const supabase = createClient()
-    const path = `covers/${userId}-${Date.now()}.${file.name.split('.').pop()}`
-    const { error } = await supabase.storage.from('covers').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data } = supabase.storage.from('covers').getPublicUrl(path)
-      setCoverUrl(data.publicUrl)
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `trip-covers/${Date.now()}.${ext}`
+      const signed = await getUploadUrl('covers', path)
+      if (!signed) throw new Error('Could not get upload URL')
+      const res = await fetch(signed.signedUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+      if (!res.ok) throw new Error('Upload failed')
+      setCoverUrl(`https://fkybsfpdhvjitivsylnj.supabase.co/storage/v1/object/public/covers/${path}`)
+    } catch (err: any) {
+      setError(err.message)
     }
+    setUploading(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!destinationData) { setError('Please select a destination from the list'); return }
     if (!name.trim()) { setError('Trip name is required'); return }
+    if (!destinationData) { setError('Please select a destination from the suggestions'); return }
     if (!startDate || !endDate) { setError('Please set travel dates'); return }
-    if (endDate < startDate) { setError('End date must be after start date'); return }
-
-    setSaving(true)
+    if (endDate < startDate) { setError('Return date must be after departure'); return }
     setError('')
-    const supabase = createClient()
-
-    const { data: trip, error: tripErr } = await supabase
-      .from('trips')
-      .insert({
+    startTransition(async () => {
+      const result = await createTrip({
         name: name.trim(),
         destination_name: destinationData.description,
         destination_lat: destinationData.lat ?? null,
@@ -106,67 +96,64 @@ export default function NewTripForm({ userId }: { userId: string }) {
         start_date: startDate,
         end_date: endDate,
         cover_photo_url: coverUrl,
-        created_by: userId,
       })
-      .select('id')
-      .single()
-
-    if (tripErr || !trip) { setError(tripErr?.message ?? 'Failed to create trip'); setSaving(false); return }
-
-    // Add creator as owner
-    await supabase.from('trip_members').insert({ trip_id: trip.id, user_id: userId, role: 'owner' })
-
-    // Create default permissions
-    await supabase.from('trip_permissions').insert({ trip_id: trip.id })
-
-    router.push(`/trips/${trip.id}`)
+      if (result?.error) setError(result.error)
+    })
   }
+
+  const today = new Date().toISOString().split('T')[0]
 
   return (
     <>
-      {/* Load Google Maps JS API */}
-      <script
-        async
+      <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        onLoad={onMapsLoaded}
       />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="px-5 pt-12 pb-24 max-w-sm mx-auto"
+        className="px-5 pt-14 pb-32 max-w-mobile mx-auto"
       >
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground text-sm mb-6 -ml-1">
-          <ChevronLeft className="w-4 h-4" /> Back
+        <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground mb-6 -ml-1">
+          <ChevronLeft className="w-5 h-5" />
+          <span className="text-sm">Back</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-6">New trip ✈️</h1>
+        <h1 className="text-2xl font-bold mb-7">New trip ✈️</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Cover photo */}
           <div>
-            <label className="text-sm font-medium block mb-2">Cover photo <span className="text-muted-foreground font-normal">(optional)</span></label>
+            <label className="text-sm font-medium block mb-2">
+              Cover photo <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full h-36 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 overflow-hidden relative active:scale-[0.98] transition-transform"
+              disabled={uploading}
+              className="w-full h-40 rounded-2xl border-2 border-dashed border-border relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-muted/30 active:scale-[0.99] transition-transform"
             >
               {coverUrl ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={coverUrl} alt="cover" className="absolute inset-0 w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/20" />
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setCoverUrl(null) }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center"
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 flex items-center justify-center z-10"
                   >
                     <X className="w-4 h-4 text-white" />
                   </button>
                 </>
+              ) : uploading ? (
+                <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
               ) : (
                 <>
-                  <Upload className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Tap to add a cover photo</span>
+                  <ImagePlus className="w-7 h-7 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Add a cover photo</span>
                 </>
               )}
             </button>
@@ -175,45 +162,46 @@ export default function NewTripForm({ userId }: { userId: string }) {
 
           {/* Trip name */}
           <div>
-            <label className="text-sm font-medium block mb-1">Trip name</label>
+            <label className="text-sm font-medium block mb-1.5">Trip name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Lanzarote June 2026"
+              placeholder="e.g. Lanzarote Summer 2026"
               required
-              className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
+              className="w-full h-13 px-4 rounded-2xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
             />
           </div>
 
           {/* Destination */}
           <div className="relative">
-            <label className="text-sm font-medium block mb-1">Destination</label>
+            <label className="text-sm font-medium block mb-1.5">Destination</label>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
                 value={destination}
                 onChange={(e) => handleDestinationChange(e.target.value)}
                 placeholder="Search for a city…"
-                required
-                className="w-full h-12 pl-9 pr-4 rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
+                autoComplete="off"
+                className="w-full h-13 pl-10 pr-4 rounded-2xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
               />
             </div>
             {suggestions.length > 0 && (
-              <div className="absolute z-10 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg overflow-hidden">
-                {suggestions.map((s) => (
+              <div className="absolute z-20 top-full mt-2 w-full bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
+                {suggestions.slice(0, 5).map((s, i) => (
                   <button
                     key={s.place_id}
                     type="button"
                     onClick={() => selectSuggestion(s)}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-muted active:bg-muted border-b border-border last:border-0"
+                    className={`w-full text-left px-4 py-3.5 text-sm hover:bg-muted active:bg-muted flex items-center gap-3 ${i < suggestions.length - 1 ? 'border-b border-border' : ''}`}
                   >
+                    <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     {s.description}
                   </button>
                 ))}
               </div>
             )}
-            {destinationData && (
-              <p className="text-xs text-primary mt-1 flex items-center gap-1">
+            {destinationData && !suggestions.length && (
+              <p className="text-xs text-primary mt-1.5 flex items-center gap-1 font-medium">
                 <MapPin className="w-3 h-3" /> Location confirmed
               </p>
             )}
@@ -222,45 +210,42 @@ export default function NewTripForm({ userId }: { userId: string }) {
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium block mb-1">Depart</label>
+              <label className="text-sm font-medium block mb-1.5">Depart</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => { setStartDate(e.target.value); if (endDate && e.target.value > endDate) setEndDate('') }}
                 required
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full h-12 px-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                min={today}
+                className="w-full h-13 px-3 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-1">Return</label>
+              <label className="text-sm font-medium block mb-1.5">Return</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 required
-                min={startDate || new Date().toISOString().split('T')[0]}
-                className="w-full h-12 px-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                min={startDate || today}
+                className="w-full h-13 px-3 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
             </div>
           </div>
 
           {error && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2"
-            >
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3">
               {error}
             </motion.p>
           )}
 
           <button
             type="submit"
-            disabled={saving}
-            className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-base disabled:opacity-50 active:scale-[0.98] transition-transform mt-2"
+            disabled={isPending || uploading}
+            className="w-full h-13 rounded-2xl bg-primary text-primary-foreground font-semibold text-base shadow-md shadow-primary/25 disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
-            {saving ? 'Creating trip…' : 'Create trip'}
+            {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : 'Create trip'}
           </button>
         </form>
       </motion.div>
