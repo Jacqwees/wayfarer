@@ -12,6 +12,11 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'Wayfarer',
+    startupImage: '/icons/apple-touch-icon.png',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
   },
 }
 
