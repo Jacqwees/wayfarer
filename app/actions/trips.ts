@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
 
 export async function createTrip(formData: {
@@ -12,11 +13,15 @@ export async function createTrip(formData: {
   end_date: string
   cover_photo_url: string | null
 }) {
+  // Verify auth with regular client
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const { data: trip, error } = await supabase
+  // Write with service client (bypasses RLS — auth already verified above)
+  const db = createServiceClient()
+
+  const { data: trip, error } = await db
     .from('trips')
     .insert({ ...formData, created_by: user.id })
     .select('id')
@@ -24,14 +29,17 @@ export async function createTrip(formData: {
 
   if (error || !trip) return { error: error?.message ?? 'Failed to create trip' }
 
-  await supabase.from('trip_members').insert({ trip_id: trip.id, user_id: user.id, role: 'owner' })
-  await supabase.from('trip_permissions').insert({ trip_id: trip.id })
+  await db.from('trip_members').insert({ trip_id: trip.id, user_id: user.id, role: 'owner' })
+  await db.from('trip_permissions').insert({ trip_id: trip.id })
 
   redirect(`/trips/${trip.id}`)
 }
 
 export async function getUploadUrl(bucket: string, path: string) {
   const supabase = await createClient()
-  const { data } = await supabase.storage.from(bucket).createSignedUploadUrl(path)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const db = createServiceClient()
+  const { data } = await db.storage.from(bucket).createSignedUploadUrl(path)
   return data
 }
