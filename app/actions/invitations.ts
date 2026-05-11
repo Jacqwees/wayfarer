@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { Resend } from 'resend'
 import { revalidatePath } from 'next/cache'
+import { sendPushToUser } from './push'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -86,6 +87,13 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
     )
   }
 
+  // Push notification to existing members
+  if (members) {
+    for (const m of members) {
+      sendPushToUser(m.user_id, { title: 'New invitation sent', body: `${inviter?.display_name ?? 'Someone'} invited ${email} to ${trip?.name}`, url: '/notifications' }).catch(() => {})
+    }
+  }
+
   revalidatePath(`/trips/${tripId}/invite`)
   return { success: true }
 }
@@ -119,6 +127,17 @@ export async function respondToInvitation(invitationId: string, accept: boolean)
           message: `${profile?.display_name ?? 'Someone'} joined ${trip?.name}`,
         }))
       )
+    }
+  }
+
+  if (accept) {
+    const { data: members2 } = await db.from('trip_members').select('user_id').eq('trip_id', inv.trip_id).neq('user_id', user.id)
+    const { data: profile2 } = await db.from('users').select('display_name').eq('id', user.id).single()
+    const { data: trip2 } = await db.from('trips').select('name').eq('id', inv.trip_id).single()
+    if (members2) {
+      for (const m of members2) {
+        sendPushToUser(m.user_id, { title: 'New member joined!', body: `${profile2?.display_name ?? 'Someone'} joined ${trip2?.name}`, url: `/trips/${inv.trip_id}/members` }).catch(() => {})
+      }
     }
   }
 

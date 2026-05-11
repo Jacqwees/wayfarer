@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, CheckCheck, PlaneTakeoff, Users, Receipt, UserPlus, Crown, AlertCircle, MessageSquare } from 'lucide-react'
+import { Bell, CheckCheck, Users, Receipt, UserPlus, Crown, AlertCircle } from 'lucide-react'
 import { markNotificationRead, markAllRead } from '@/app/actions/notifications'
 import { respondToInvitation } from '@/app/actions/invitations'
+import { createClient } from '@/lib/supabase/client'
 
 type Notification = {
   id: string
@@ -45,6 +46,19 @@ export default function NotificationsView({ notifications: initial }: Props) {
   const [respondingId, setRespondingId] = useState<string | null>(null)
 
   const unread = notifications.filter(n => !n.read).length
+
+  useEffect(() => {
+    const supabase = createClient()
+    const userId = initial[0]?.id ? undefined : undefined // we don't have userId here, subscribe broadly and filter client-side
+    const channel = supabase
+      .channel('rt-my-notifications')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, payload => {
+        const n = payload.new as Notification
+        setNotifications(prev => [n, ...prev])
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   function markRead(id: string) {
     setNotifications(ns => ns.map(n => n.id === id ? { ...n, read: true } : n))

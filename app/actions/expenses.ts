@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
+import { sendPushToUser } from './push'
 
 async function getFxRate(currency: string): Promise<number> {
   if (currency === 'GBP') return 1
@@ -84,6 +85,13 @@ export async function addExpense(tripId: string, data: {
     )
   }
 
+  // Push notification to members
+  if (members && members.length > 0) {
+    for (const m of members) {
+      sendPushToUser(m.user_id, { title: 'New expense added', body: `${profile?.display_name ?? 'Someone'}: £${amount_gbp.toFixed(2)} — ${data.description}`, url: `/trips/${tripId}/expenses`, tag: 'expense' }).catch(() => {})
+    }
+  }
+
   revalidatePath(`/trips/${tripId}/expenses`)
   return { success: true }
 }
@@ -115,6 +123,8 @@ export async function recordPayment(tripId: string, toUserId: string, amount: nu
     message: `${profile?.display_name ?? 'Someone'} sent you £${amount.toFixed(2)} in ${trip?.name} — confirm when received`,
   })
 
+  sendPushToUser(toUserId, { title: 'Payment received', body: `${profile?.display_name ?? 'Someone'} sent you £${amount.toFixed(2)} — confirm when received`, url: `/trips/${tripId}/expenses`, tag: 'payment' }).catch(() => {})
+
   revalidatePath(`/trips/${tripId}/expenses`)
   return { success: true }
 }
@@ -140,6 +150,8 @@ export async function confirmPayment(tripId: string, paymentId: string) {
     reference_id: paymentId,
     message: `${profile?.display_name ?? 'Someone'} confirmed your £${payment.amount.toFixed(2)} payment in ${trip?.name}`,
   })
+
+  sendPushToUser(payment.from_user_id, { title: 'Payment confirmed!', body: `${profile?.display_name ?? 'Someone'} confirmed your £${payment.amount.toFixed(2)} payment`, url: `/trips/${tripId}/expenses`, tag: 'payment' }).catch(() => {})
 
   revalidatePath(`/trips/${tripId}/expenses`)
   return { success: true }
@@ -170,6 +182,8 @@ export async function nudgePayer(tripId: string, toUserId: string) {
     trip_id: tripId,
     message: `${profile?.display_name ?? 'Someone'} is waiting for you to settle up in ${trip?.name}`,
   })
+
+  sendPushToUser(toUserId, { title: '👋 Settle up reminder', body: `${profile?.display_name ?? 'Someone'} is waiting for you to settle up in ${trip?.name}`, url: `/trips/${tripId}/expenses`, tag: 'nudge' }).catch(() => {})
 
   return { success: true }
 }

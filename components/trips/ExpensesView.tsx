@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Plus, X, Loader2, Receipt, ArrowRightLeft, AlertCircle, Bell } from 'lucide-react'
 import { addExpense, recordPayment, confirmPayment, disputeSplit, nudgePayer } from '@/app/actions/expenses'
+import { createClient } from '@/lib/supabase/client'
+import { useOfflineExpenses } from '@/hooks/useOfflineExpenses'
+import { WifiOff, RefreshCw } from 'lucide-react'
 
 type Member = { user_id: string; display_name: string; avatar_url: string | null }
 type Expense = {
@@ -49,6 +52,18 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<'expenses' | 'settle'>('expenses')
+
+  const { isOnline, pendingExpenses, syncing, queueExpense, syncPending } = useOfflineExpenses(tripId)
+
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`rt-expenses-${tripId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `trip_id=eq.${tripId}` }, () => router.refresh())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments', filter: `trip_id=eq.${tripId}` }, () => router.refresh())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [tripId, router])
   const [showAdd, setShowAdd] = useState(false)
   const [nudgedIds, setNudgedIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
@@ -71,19 +86,26 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
     const amt = parseFloat(form.amount)
     if (!amt || amt <= 0) { setError('Enter a valid amount'); return }
     setError('')
+    const expenseData = {
+      description: form.description,
+      amount: amt,
+      currency: form.currency,
+      paid_by: form.paid_by,
+      category: form.category,
+      split_type: form.split_type,
+      split_with: form.split_type === 'equal_select' ? form.split_with : undefined,
+      custom_splits: form.split_type === 'custom'
+        ? form.custom_splits.filter(s => parseFloat(s.amount) > 0).map(s => ({ user_id: s.user_id, amount: parseFloat(s.amount) }))
+        : undefined,
+    }
+    if (!isOnline) {
+      queueExpense(expenseData)
+      setShowAdd(false)
+      setForm(f => ({ ...f, description: '', amount: '', split_with: members.map(m => m.user_id) }))
+      return
+    }
     startTransition(async () => {
-      const res = await addExpense(tripId, {
-        description: form.description,
-        amount: amt,
-        currency: form.currency,
-        paid_by: form.paid_by,
-        category: form.category,
-        split_type: form.split_type,
-        split_with: form.split_type === 'equal_select' ? form.split_with : undefined,
-        custom_splits: form.split_type === 'custom'
-          ? form.custom_splits.filter(s => parseFloat(s.amount) > 0).map(s => ({ user_id: s.user_id, amount: parseFloat(s.amount) }))
-          : undefined,
-      })
+      const res = await addExpense(tripId, expenseData)
       if (res.error) { setError(res.error); return }
       setShowAdd(false)
       setForm(f => ({ ...f, description: '', amount: '', split_with: members.map(m => m.user_id) }))
@@ -145,7 +167,46 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
           <Plus className="w-4 h-4" /> Add
         </button>
       </div>
-      <p className="text-muted-foreground text-sm mb-6">Total: <span className="font-semibold text-foreground">£{totalGbp.toFixed(2)}</span></p>
+      <p className="text-muted-foreground text-sm mb-4">Total: <span className="font-semibold text-foreground">£{totalGbp.toFixed(2)}</span></p>
+
+      {/* Offline banner */}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3 mb-4 text-amber-700 dark:text-amber-400">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span className="text-sm font-medium">You&apos;re offline — expenses will sync when reconnected</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Pending offline expenses */}
+      {pendingExpenses.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">
+              {pendingExpenses.length} pending sync
+            </p>
+            {isOnline && (
+              <button onClick={syncPending} disabled={syncing}
+                className="flex items-center gap-1 text-xs text-primary font-medium">
+                <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} /> Sync now
+              </button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {pendingExpenses.map(exp => (
+              <div key={exp.id} className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{exp.description}</p>
+                  <p className="text-xs text-muted-foreground">{exp.currency} {exp.amount.toFixed(2)} · pending</p>
+                </div>
+                <WifiOff className="w-4 h-4 text-amber-500 shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="flex bg-card border border-border rounded-2xl p-1 gap-1 mb-6">
