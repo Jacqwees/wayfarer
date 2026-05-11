@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   ChevronLeft, Plane, Hotel, CalendarDays, MapPin,
-  Wallet, Users, Bell, UserPlus
+  Wallet, Users, Bell, UserPlus, Settings
 } from 'lucide-react'
 
 type Trip = {
@@ -62,6 +62,7 @@ export default function TripDashboard({
 }) {
   const router = useRouter()
   const canInvite = role === 'owner' || (role === 'member' && permissions?.members_can_invite)
+  const canEdit = role === 'owner' || (role === 'member' && permissions?.members_can_edit_info)
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -83,17 +84,27 @@ export default function TripDashboard({
           >
             <ChevronLeft className="w-5 h-5 text-white" />
           </button>
-          <Link
-            href="/notifications"
-            className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center relative"
-          >
-            <Bell className="w-4 h-4 text-white" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-                {unreadCount}
-              </span>
+          <div className="flex items-center gap-2">
+            {canEdit && (
+              <Link
+                href={`/trips/${trip.id}/settings`}
+                className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center"
+              >
+                <Settings className="w-4 h-4 text-white" />
+              </Link>
             )}
-          </Link>
+            <Link
+              href="/notifications"
+              className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center relative"
+            >
+              <Bell className="w-4 h-4 text-white" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
 
         {/* Trip info */}

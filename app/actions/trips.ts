@@ -3,6 +3,52 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+
+export async function updateTrip(tripId: string, data: {
+  name: string
+  destination_name: string
+  destination_lat: number | null
+  destination_lng: number | null
+  start_date: string
+  end_date: string
+  cover_photo_url: string | null
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const db = createServiceClient()
+  const { data: membership } = await db.from('trip_members').select('role').eq('trip_id', tripId).eq('user_id', user.id).single()
+  if (!membership) return { error: 'Not a member' }
+
+  if (membership.role !== 'owner') {
+    const { data: perms } = await db.from('trip_permissions').select('members_can_edit_info').eq('trip_id', tripId).single()
+    if (!perms?.members_can_edit_info) return { error: 'No permission to edit trip' }
+  }
+
+  const { error } = await db.from('trips').update(data).eq('id', tripId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/trips/${tripId}`)
+  revalidatePath(`/trips/${tripId}/settings`)
+  revalidatePath('/trips')
+  return { success: true }
+}
+
+export async function deleteTrip(tripId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const db = createServiceClient()
+  const { data: membership } = await db.from('trip_members').select('role').eq('trip_id', tripId).eq('user_id', user.id).single()
+  if (membership?.role !== 'owner') return { error: 'Only the owner can delete this trip' }
+
+  await db.from('trips').delete().eq('id', tripId)
+  revalidatePath('/trips')
+  redirect('/trips')
+}
 
 export async function createTrip(formData: {
   name: string
