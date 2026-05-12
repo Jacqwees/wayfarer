@@ -39,7 +39,7 @@ export default function StepNotifications({
         <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center">
           <Bell className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold">Stay in the loop</h1>
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Stay in the loop</h1>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
           Get notified when someone joins your trip, adds an expense, or sends you money.
           You can change this anytime in settings.

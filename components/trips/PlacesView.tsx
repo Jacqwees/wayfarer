@@ -174,8 +174,8 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
           <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-1">Things To Do</h1>
-        <p className="text-sm text-muted-foreground mb-5">near <span className="font-medium text-foreground">{destination.name}</span></p>
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-0.5">Things To Do</h1>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-5">near {destination.name.split(',')[0]}</p>
 
         {/* Search bar */}
         <div className="relative mb-4">
@@ -187,7 +187,7 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
             onKeyDown={e => e.key === 'Enter' && doSearch()}
             placeholder="Search restaurants, museums…"
             disabled={!mapsReady}
-            className="w-full h-12 pl-10 pr-20 rounded-2xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+            className="w-full h-12 pl-10 pr-20 rounded-full border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
           />
           <button onClick={doSearch} disabled={!mapsReady || !query.trim()}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary disabled:opacity-40">
@@ -199,7 +199,7 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
         <AnimatePresence>
           {results.length > 0 && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="bg-card border border-border rounded-2xl overflow-hidden mb-6 shadow-lg">
+              className="bg-card border border-border rounded-lg overflow-hidden mb-6 shadow-lg">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <span className="text-xs font-semibold text-muted-foreground">{results.length} results</span>
                 <button onClick={() => setResults([])}><X className="w-4 h-4 text-muted-foreground" /></button>
@@ -241,7 +241,7 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
 
         {/* Saved places */}
         {filtered.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-2xl px-4 py-12 text-center">
+          <div className="bg-card border border-dashed border-border rounded-lg px-4 py-12 text-center">
             <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">
               {savedPlaces.length === 0 ? 'Search for places to save them here' : 'No saved places in this category'}
@@ -250,7 +250,7 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
         ) : (
           <div className="space-y-3">
             {filtered.map(p => (
-              <div key={p.id} className="bg-card border border-border rounded-2xl overflow-hidden flex">
+              <div key={p.id} className="bg-card border border-border rounded-lg overflow-hidden flex">
                 {p.photo_url && (
                   <img src={p.photo_url} alt="" className="w-20 h-20 object-cover shrink-0" />
                 )}

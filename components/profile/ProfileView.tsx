@@ -76,7 +76,7 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
       <div className="px-5 pt-14 pb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Profile</h1>
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Profile</h1>
         <button
           onClick={() => editing ? handleSave() : setEditing(true)}
           disabled={isPending}
@@ -115,22 +115,22 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
             />
           ) : (
             <div className="text-center">
-              <h2 className="text-xl font-bold">{form.display_name}</h2>
-              <p className="text-muted-foreground text-sm">{profile?.email}</p>
+              <h2 className="font-display italic text-[26px] leading-tight tracking-[-0.01em]">{form.display_name}</h2>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5">{profile?.email}</p>
             </div>
           )}
         </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 gap-0 bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 gap-0 bg-card border border-border rounded-lg overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4">
-            <span className="text-sm text-muted-foreground">Trips</span>
-            <span className="font-semibold">{tripCount}</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Trips</span>
+            <span className="font-display italic text-[22px] leading-none">{tripCount}</span>
           </div>
         </div>
 
         {/* Details */}
-        <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
+        <div className="bg-card border border-border rounded-lg overflow-hidden divide-y divide-border">
           {/* Phone */}
           <div className="px-5 py-4">
             <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
         {/* Sign out */}
         {!editing && (
           <button onClick={handleSignOut}
-            className="w-full flex items-center justify-between px-5 py-4 bg-card border border-border rounded-2xl text-destructive active:scale-[0.98] transition-transform">
+            className="w-full flex items-center justify-between px-5 py-4 bg-card border border-border rounded-lg text-destructive active:scale-[0.98] transition-transform">
             <div className="flex items-center gap-3">
               <LogOut className="w-4 h-4" />
               <span className="text-sm font-medium">Sign out</span>

@@ -67,8 +67,8 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
         <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
       </button>
 
-      <h1 className="text-2xl font-bold mb-1">Invite people</h1>
-      <p className="text-muted-foreground text-sm mb-7">to <span className="font-medium text-foreground">{tripName}</span></p>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">to {tripName}</p>
+      <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-7">Invite people</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -77,7 +77,7 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
               placeholder="friend@example.com" required autoFocus
-              className="w-full h-13 pl-10 pr-4 rounded-2xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base" />
+              className="w-full h-12 pl-10 pr-4 rounded-full border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
           </div>
         </div>
 
@@ -86,7 +86,7 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
           <div className="grid grid-cols-2 gap-2">
             {(['member', 'viewer'] as const).map(r => (
               <button key={r} type="button" onClick={() => setRole(r)}
-                className={`py-3 rounded-2xl border text-sm font-medium transition-colors ${role === r ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input text-muted-foreground'}`}>
+                className={`py-3 rounded-lg border text-sm font-medium transition-colors ${role === r ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-input text-muted-foreground'}`}>
                 <div className="font-semibold capitalize">{r}</div>
                 <div className={`text-xs mt-0.5 ${role === r ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
                   {r === 'member' ? 'Can participate fully' : 'Read-only access'}
@@ -100,7 +100,7 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
           className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3">{error}</motion.p>}
 
         <button type="submit" disabled={isPending || !email.trim()}
-          className="w-full h-13 rounded-2xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
+          className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2">
           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           {isPending ? 'Sending…' : 'Send invite'}
         </button>
@@ -110,9 +110,9 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
       <AnimatePresence>
         {pending.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Pending invitations</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Pending invitations</p>
             {pending.map(inv => (
-              <div key={inv.id} className="bg-card border border-border rounded-2xl px-4 py-3">
+              <div key={inv.id} className="bg-card border border-border rounded-lg px-4 py-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{inv.invited_email}</p>
@@ -153,9 +153,9 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
       <AnimatePresence>
         {sent.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Just sent</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Just sent</p>
             {sent.map(e => (
-              <div key={e} className="flex items-center gap-3 bg-card border border-border rounded-2xl px-4 py-3">
+              <div key={e} className="flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                 <span className="text-sm text-foreground">{e}</span>
               </div>

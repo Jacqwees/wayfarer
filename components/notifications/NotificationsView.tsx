@@ -101,12 +101,12 @@ export default function NotificationsView({ notifications: initial, userId }: Pr
     >
       <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-bold">Notifications</h1>
-          {unread > 0 && <p className="text-xs text-muted-foreground mt-0.5">{unread} unread</p>}
+          {unread > 0 && <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">{unread} unread</p>}
+          <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Notifications</h1>
         </div>
         {unread > 0 && (
           <button onClick={handleMarkAll} disabled={isPending}
-            className="text-xs text-primary font-medium flex items-center gap-1">
+            className="text-xs text-primary font-semibold flex items-center gap-1.5">
             <CheckCheck className="w-3.5 h-3.5" /> Mark all read
           </button>
         )}
@@ -127,7 +127,7 @@ export default function NotificationsView({ notifications: initial, userId }: Pr
                 key={n.id}
                 layout
                 onClick={() => handleTap(n)}
-                className={`w-full flex items-start gap-3 bg-card border rounded-2xl px-4 py-4 text-left transition-colors ${n.read ? 'border-border' : 'border-primary/30 bg-primary/5'}`}
+                className={`w-full flex items-start gap-3 bg-card border rounded-lg px-4 py-4 text-left transition-colors ${n.read ? 'border-border' : 'border-primary/30 bg-primary/5'}`}
               >
                 <div className={`w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center shrink-0 ${cfg.color}`}>
                   <Icon className="w-4 h-4" />
@@ -136,7 +136,7 @@ export default function NotificationsView({ notifications: initial, userId }: Pr
                   <p className={`text-sm leading-relaxed ${n.read ? 'text-foreground' : 'font-medium text-foreground'}`}>
                     {n.message}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
+                  <p className="font-mono text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
                 </div>
                 {!n.read && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
               </motion.button>

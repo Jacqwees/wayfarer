@@ -110,16 +110,17 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
         </button>
 
         <div className="flex items-center justify-between mb-7">
-          <h1 className="text-2xl font-bold">Hotel</h1>
+          <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Hotel</h1>
           {canEdit && (
-            <button onClick={openAdd} className="flex items-center gap-1 text-primary text-sm font-medium">
-              <Plus className="w-4 h-4" /> Add
+            <button onClick={openAdd}
+              className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-semibold active:scale-95 transition-transform">
+              <Plus className="w-3.5 h-3.5" /> Add
             </button>
           )}
         </div>
 
         {hotels.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-2xl px-4 py-12 text-center">
+          <div className="bg-card border border-dashed border-border rounded-lg px-4 py-12 text-center">
             <Hotel className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">No accommodation added yet</p>
             {canEdit && (
@@ -129,10 +130,10 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
         ) : (
           <div className="space-y-4">
             {hotels.map(h => (
-              <div key={h.id} className="bg-card border border-border rounded-2xl overflow-hidden">
+              <div key={h.id} className="bg-card border border-border rounded-lg overflow-hidden">
                 <div className="px-4 py-4">
                   <div className="flex items-start justify-between mb-1">
-                    <h2 className="font-bold text-base">{h.name}</h2>
+                    <h2 className="font-semibold text-base">{h.name}</h2>
                     {canEdit && (
                       <div className="flex gap-1 shrink-0">
                         <button onClick={() => openEdit(h)} className="p-1.5 rounded-xl hover:bg-muted transition-colors">
@@ -153,14 +154,14 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
 
                   <div className="flex items-center gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Check-in</p>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Check-in</p>
                       <p className="text-sm font-semibold">{formatDate(h.check_in_date)}</p>
                     </div>
                     <div className="h-px flex-1 bg-border" />
-                    <div className="text-xs text-muted-foreground text-center">{nights(h.check_in_date, h.check_out_date)} nights</div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground text-center">{nights(h.check_in_date, h.check_out_date)}n</p>
                     <div className="h-px flex-1 bg-border" />
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Check-out</p>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Check-out</p>
                       <p className="text-sm font-semibold">{formatDate(h.check_out_date)}</p>
                     </div>
                   </div>

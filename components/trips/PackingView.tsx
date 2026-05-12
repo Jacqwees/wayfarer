@@ -91,10 +91,10 @@ export default function PackingView({ tripId, items: initial, members, currentUs
       </button>
 
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold">Packing list</h1>
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Packing list</h1>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1 text-primary text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add item
+          className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-semibold active:scale-95 transition-transform">
+          <Plus className="w-3.5 h-3.5" /> Add
         </button>
       </div>
 
@@ -129,7 +129,7 @@ export default function PackingView({ tripId, items: initial, members, currentUs
       {error && <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3 mb-4">{error}</p>}
 
       {filtered.length === 0 ? (
-        <div className="bg-card border border-dashed border-border rounded-2xl px-4 py-12 text-center">
+        <div className="bg-card border border-dashed border-border rounded-lg px-4 py-12 text-center">
           <PackageCheck className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">
             {items.length === 0 ? 'Add items your group needs to pack' : 'Nothing here'}
@@ -143,7 +143,7 @@ export default function PackingView({ tripId, items: initial, members, currentUs
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className={`flex items-center gap-3 bg-card border rounded-2xl px-4 py-3 transition-colors ${item.packed ? 'border-border opacity-60' : 'border-border'}`}>
+                <div className={`flex items-center gap-3 bg-card border rounded-lg px-4 py-3 transition-colors ${item.packed ? 'border-border opacity-60' : 'border-border'}`}>
                   <button onClick={() => handleToggle(item)} disabled={isPending} className="shrink-0">
                     {item.packed
                       ? <CheckSquare className="w-5 h-5 text-primary" />

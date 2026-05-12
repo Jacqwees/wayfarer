@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import TripCard from '@/components/trips/TripCard'
+import TripListView from '@/components/trips/TripListView'
 
 export default async function TripsPage() {
   const supabase = await createClient()
@@ -31,66 +31,29 @@ export default async function TripsPage() {
   const upcoming = trips.filter((t) => new Date(t.end_date) >= now)
   const past = trips.filter((t) => new Date(t.end_date) < now)
 
+  const firstName = profile?.display_name?.split(' ')[0] ?? ''
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-32">
       {/* Header */}
-      <div className="px-5 pt-12 pb-4 flex items-center justify-between">
+      <div className="px-5 pt-14 pb-5 flex items-end justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">Hello, {profile?.display_name?.split(' ')[0]} 👋</p>
-          <h1 className="text-2xl font-bold">Your trips</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+            Welcome back, {firstName}
+          </p>
+          <h1 className="font-display italic text-[38px] leading-[0.9] tracking-[-0.01em] text-foreground">
+            Your trips
+          </h1>
         </div>
         <Link
           href="/trips/new"
-          className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-md active:scale-95 transition-transform"
+          className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg active:scale-95 transition-transform"
         >
-          <Plus className="w-5 h-5 text-white" />
+          <Plus className="w-5 h-5 text-primary-foreground" />
         </Link>
       </div>
 
-      <div className="px-5 pb-24 space-y-8">
-        {trips.length === 0 ? (
-          <div className="pt-20 flex flex-col items-center text-center space-y-4">
-            <div className="text-5xl">✈️</div>
-            <h2 className="text-lg font-semibold">No trips yet</h2>
-            <p className="text-muted-foreground text-sm max-w-xs">
-              Create your first trip and invite your crew. It only takes a minute.
-            </p>
-            <Link
-              href="/trips/new"
-              className="mt-2 px-6 h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-2 active:scale-95 transition-transform"
-            >
-              <Plus className="w-4 h-4" /> Plan a trip
-            </Link>
-          </div>
-        ) : (
-          <>
-            {upcoming.length > 0 && (
-              <section>
-                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Upcoming
-                </h2>
-                <div className="space-y-3">
-                  {upcoming.map((trip) => (
-                    <TripCard key={trip.id} trip={trip} />
-                  ))}
-                </div>
-              </section>
-            )}
-            {past.length > 0 && (
-              <section>
-                <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  Past
-                </h2>
-                <div className="space-y-3 opacity-70">
-                  {past.map((trip) => (
-                    <TripCard key={trip.id} trip={trip} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
-        )}
-      </div>
+      <TripListView upcoming={upcoming} past={past} />
     </div>
   )
 }

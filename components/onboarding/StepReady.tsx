@@ -31,8 +31,8 @@ export default function StepReady({
       </motion.div>
 
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold">
-          You&apos;re all set, {displayName.split(' ')[0]}!
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">
+          You&apos;re all set, {displayName.split(' ')[0]}
         </h1>
         <p className="text-muted-foreground text-sm leading-relaxed">
           Time to start planning something amazing.

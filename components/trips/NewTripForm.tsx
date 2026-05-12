@@ -121,7 +121,7 @@ export default function NewTripForm() {
           <span className="text-sm">Back</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-7">New trip ✈️</h1>
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-7">New trip</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Cover photo */}
@@ -133,7 +133,7 @@ export default function NewTripForm() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="w-full h-40 rounded-2xl border-2 border-dashed border-border relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-muted/30 active:scale-[0.99] transition-transform"
+              className="w-full h-40 rounded-lg border-2 border-dashed border-border relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-muted/30 active:scale-[0.99] transition-transform"
             >
               {coverUrl ? (
                 <>
@@ -168,7 +168,7 @@ export default function NewTripForm() {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Lanzarote Summer 2026"
               required
-              className="w-full h-13 px-4 rounded-2xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
+              className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
             />
           </div>
 
@@ -182,11 +182,11 @@ export default function NewTripForm() {
                 onChange={(e) => handleDestinationChange(e.target.value)}
                 placeholder="Search for a city…"
                 autoComplete="off"
-                className="w-full h-13 pl-10 pr-4 rounded-2xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base"
+                className="w-full h-12 pl-10 pr-4 rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
             </div>
             {suggestions.length > 0 && (
-              <div className="absolute z-20 top-full mt-2 w-full bg-card border border-border rounded-2xl shadow-xl overflow-hidden">
+              <div className="absolute z-20 top-full mt-2 w-full bg-card border border-border rounded-lg shadow-xl overflow-hidden">
                 {suggestions.slice(0, 5).map((s, i) => (
                   <button
                     key={s.place_id}
@@ -217,7 +217,7 @@ export default function NewTripForm() {
                 onChange={(e) => { setStartDate(e.target.value); if (endDate && e.target.value > endDate) setEndDate('') }}
                 required
                 min={today}
-                className="w-full h-13 px-3 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                className="w-full h-12 px-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
             </div>
             <div>
@@ -228,7 +228,7 @@ export default function NewTripForm() {
                 onChange={(e) => setEndDate(e.target.value)}
                 required
                 min={startDate || today}
-                className="w-full h-13 px-3 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+                className="w-full h-12 px-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function NewTripForm() {
           <button
             type="submit"
             disabled={isPending || uploading}
-            className="w-full h-13 rounded-2xl bg-primary text-primary-foreground font-semibold text-base shadow-md shadow-primary/25 disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-sm shadow-md shadow-primary/20 disabled:opacity-50 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
             {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : 'Create trip'}
           </button>

@@ -111,7 +111,7 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
         <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
       </button>
 
-      <h1 className="text-2xl font-bold mb-7">Flights</h1>
+      <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-7">Flights</h1>
 
       {(['outbound', 'return'] as const).map(dir => {
         const list = dir === 'outbound' ? outbound : returnFlight
@@ -123,7 +123,7 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Icon className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold">{label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
               </div>
               {canEdit && (
                 <button onClick={() => openAdd(dir)}
@@ -134,27 +134,27 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
             </div>
 
             {list.length === 0 ? (
-              <div className="bg-card border border-dashed border-border rounded-2xl px-4 py-8 text-center text-muted-foreground text-sm">
+              <div className="bg-card border border-dashed border-border rounded-lg px-4 py-8 text-center text-muted-foreground text-sm">
                 No {label.toLowerCase()} flight added yet
               </div>
             ) : (
               <div className="space-y-3">
                 {list.map(f => (
-                  <div key={f.id} className="bg-card border border-border rounded-2xl px-4 py-4">
+                  <div key={f.id} className="bg-card border border-border rounded-lg px-4 py-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="text-center">
-                          <p className="text-xl font-bold">{f.departure_airport}</p>
+                          <p className="font-mono text-[22px] font-bold tracking-tight">{f.departure_airport}</p>
                           <p className="text-xs text-muted-foreground">{formatDateTime(f.departure_datetime)}</p>
                         </div>
                         <div className="flex flex-col items-center gap-0.5 px-2">
-                          <div className="text-xs text-muted-foreground">{duration(f.departure_datetime, f.arrival_datetime)}</div>
+                          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{duration(f.departure_datetime, f.arrival_datetime)}</p>
                           <div className="w-16 h-px bg-border relative">
                             <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
                           </div>
                         </div>
                         <div className="text-center">
-                          <p className="text-xl font-bold">{f.arrival_airport}</p>
+                          <p className="font-mono text-[22px] font-bold tracking-tight">{f.arrival_airport}</p>
                           <p className="text-xs text-muted-foreground">{formatDateTime(f.arrival_datetime)}</p>
                         </div>
                       </div>

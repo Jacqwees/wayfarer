@@ -23,9 +23,10 @@ type Props = {
   canEdit: boolean
 }
 
-function formatDay(d: string) {
+function formatDayDisplay(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
 }
+function formatDay(d: string) { return formatDayDisplay(d) }
 
 export default function ItineraryView({ tripId, items, days, canAdd, canEdit }: Props) {
   const router = useRouter()
@@ -101,11 +102,15 @@ export default function ItineraryView({ tripId, items, days, canAdd, canEdit }: 
               <div key={day}>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Day {idx + 1}</p>
-                    <p className="text-sm font-semibold">{formatDay(day)}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">
+                      Day {String(idx + 1).padStart(2, '0')}
+                    </p>
+                    <p className="font-display italic text-[22px] leading-tight tracking-[-0.01em] text-foreground">
+                      {formatDayDisplay(day)}
+                    </p>
                   </div>
                   {canAdd && (
-                    <button onClick={() => openAdd(day)} className="flex items-center gap-1 text-xs text-primary font-medium">
+                    <button onClick={() => openAdd(day)} className="flex items-center gap-1 text-xs text-primary font-semibold">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
                   )}
@@ -128,8 +133,9 @@ export default function ItineraryView({ tripId, items, days, canAdd, canEdit }: 
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
                                 {item.time && (
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                                    <Clock className="w-3 h-3" />{item.time}
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Clock className="w-3 h-3 text-muted-foreground" />
+                                    <span className="font-mono text-[11px] text-primary font-semibold">{item.time}</span>
                                   </div>
                                 )}
                                 <p className="font-semibold text-sm">{item.title}</p>

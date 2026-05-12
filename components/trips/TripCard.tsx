@@ -1,28 +1,47 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 
+const GRADIENTS = [
+  'radial-gradient(120% 80% at 30% 110%, #FFB766 0%, #E8754A 28%, #B33E4F 55%, #4A1F4C 85%)',
+  'radial-gradient(120% 90% at 70% 0%, #F4B5C8 0%, #C26F8B 30%, #5E3A6E 60%, #1D1B3A 90%)',
+  'radial-gradient(110% 90% at 50% 100%, #FFE7B0 0%, #F5A35E 25%, #D9494B 55%, #1C3C5A 92%)',
+  'radial-gradient(120% 90% at 30% 0%, #C9F0E0 0%, #6FC8B2 25%, #3F6D88 55%, #1A2B45 92%)',
+  'radial-gradient(120% 90% at 70% 90%, #C8E1E5 0%, #6797A8 28%, #3A4C66 60%, #1B2438 92%)',
+  'radial-gradient(120% 90% at 50% 50%, #FFC58A 0%, #E07A3C 30%, #8B2F2A 60%, #2D1414 92%)',
+]
+
+function getGradient(name: string) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  return GRADIENTS[hash % GRADIENTS.length]
+}
+
 function formatDateRange(start: string, end: string) {
-  const s = new Date(start)
-  const e = new Date(end)
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
-  if (s.getFullYear() !== e.getFullYear()) {
-    return `${s.toLocaleDateString('en-GB', { ...opts, year: 'numeric' })} – ${e.toLocaleDateString('en-GB', { ...opts, year: 'numeric' })}`
-  }
-  return `${s.toLocaleDateString('en-GB', opts)} – ${e.toLocaleDateString('en-GB', { ...opts, year: 'numeric' })}`
+  const s = new Date(start + 'T12:00:00')
+  const e = new Date(end + 'T12:00:00')
+  const nights = Math.round((e.getTime() - s.getTime()) / 86400000)
+  const startStr = s.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const endStr = e.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return `${startStr} → ${endStr} · ${nights} nights`
 }
 
-function daysUntil(start: string) {
-  const diff = Math.ceil((new Date(start).getTime() - Date.now()) / 86400000)
-  if (diff < 0) return null
-  if (diff === 0) return 'Today!'
-  if (diff === 1) return 'Tomorrow'
-  return `${diff} days away`
+function daysUntil(start: string, end: string) {
+  const now = Date.now()
+  const s = new Date(start + 'T12:00:00').getTime()
+  const e = new Date(end + 'T12:00:00').getTime()
+  if (now > e) return null
+  if (now >= s) return 'In progress'
+  const days = Math.ceil((s - now) / 86400000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days < 7) return `In ${days} days`
+  if (days < 30) return `In ${Math.floor(days / 7)} wks`
+  return `In ${Math.floor(days / 30)} mo`
 }
 
-export default function TripCard({ trip }: {
+export default function TripCard({ trip, index = 0 }: {
   trip: {
     id: string
     name: string
@@ -32,53 +51,51 @@ export default function TripCard({ trip }: {
     cover_photo_url: string | null
     role: string
   }
+  index?: number
 }) {
-  const countdown = daysUntil(trip.start_date)
+  const countdown = daysUntil(trip.start_date, trip.end_date)
+  const bg = trip.cover_photo_url ? undefined : getGradient(trip.destination_name)
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: 0.4, delay: index * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
     >
       <Link href={`/trips/${trip.id}`}>
-        <div className="rounded-2xl overflow-hidden bg-card border border-border shadow-sm active:scale-[0.98] transition-transform">
-          {/* Cover photo or gradient placeholder */}
-          <div className="h-32 relative">
-            {trip.cover_photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={trip.cover_photo_url}
-                alt={trip.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/80 to-violet-500/80" />
-            )}
+        <div
+          className="relative h-[190px] rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
+          style={{ background: bg }}
+        >
+          {trip.cover_photo_url && (
+            <img src={trip.cover_photo_url} alt={trip.name} className="absolute inset-0 w-full h-full object-cover" />
+          )}
+
+          {/* Gradient overlay */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.58) 100%)' }} />
+
+          {/* Top row — countdown + role badge */}
+          <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
             {countdown && (
-              <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full">
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/90 bg-black/25 backdrop-blur-sm px-2.5 py-1 rounded-sm">
                 {countdown}
-              </div>
+              </span>
             )}
             {trip.role === 'viewer' && (
-              <div className="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full">
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 bg-black/30 px-2 py-1 rounded-sm ml-auto">
                 Viewer
-              </div>
+              </span>
             )}
           </div>
 
-          <div className="px-4 py-3 space-y-1">
-            <h3 className="font-semibold text-foreground">{trip.name}</h3>
-            <div className="flex items-center gap-3 text-muted-foreground text-xs">
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {trip.destination_name}
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                {formatDateRange(trip.start_date, trip.end_date)}
-              </span>
-            </div>
+          {/* Bottom — date + destination name */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/80 mb-1.5">
+              {formatDateRange(trip.start_date, trip.end_date)}
+            </p>
+            <h3 className="font-display italic text-white text-[34px] leading-[0.9] tracking-[-0.01em]">
+              {trip.destination_name.split(',')[0]}
+            </h3>
           </div>
         </div>
       </Link>

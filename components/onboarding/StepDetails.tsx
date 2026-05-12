@@ -60,7 +60,7 @@ export default function StepDetails({
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
 
-      <h1 className="text-2xl font-bold mb-1">A bit more about you</h1>
+      <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-1">A bit more about you</h1>
       <p className="text-muted-foreground text-sm mb-8">
         All optional. Control who sees each field.
       </p>

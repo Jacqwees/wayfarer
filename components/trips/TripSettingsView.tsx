@@ -103,14 +103,14 @@ export default function TripSettingsView({ trip, isOwner }: { trip: Trip; isOwne
           <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
         </button>
 
-        <h1 className="text-2xl font-bold mb-7">Trip settings</h1>
+        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-7">Trip settings</h1>
 
         <form onSubmit={handleSave} className="space-y-5">
           {/* Cover photo */}
           <div>
             <label className="text-xs font-medium text-muted-foreground block mb-2">Cover photo</label>
             <div
-              className="relative h-40 rounded-2xl overflow-hidden bg-gradient-to-br from-primary to-violet-600 cursor-pointer"
+              className="relative h-40 rounded-lg overflow-hidden bg-gradient-to-br from-primary to-violet-600 cursor-pointer"
               onClick={() => fileRef.current?.click()}
             >
               {form.cover_photo_url && (
@@ -193,7 +193,7 @@ export default function TripSettingsView({ trip, isOwner }: { trip: Trip; isOwne
           <button
             type="submit"
             disabled={isPending || uploading}
-            className="w-full h-13 rounded-2xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             Save changes
@@ -204,7 +204,7 @@ export default function TripSettingsView({ trip, isOwner }: { trip: Trip; isOwne
         {isOwner && (
           <div className="mt-10">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Danger zone</p>
-            <div className="bg-card border border-destructive/30 rounded-2xl p-4">
+            <div className="bg-card border border-destructive/30 rounded-lg p-4">
               <p className="text-sm font-medium mb-1">Delete this trip</p>
               <p className="text-xs text-muted-foreground mb-4">This permanently deletes the trip, all itinerary items, expenses, and member data. This cannot be undone.</p>
               <button

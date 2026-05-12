@@ -4,66 +4,67 @@
 
 @layer base {
   :root {
-    /* Wayfarer palette — indigo/violet primary, warm whites */
-    --background: 40 30% 98%;
-    --foreground: 240 10% 10%;
+    /* Coastline — Direction D */
+    --background: 38 55% 94%;      /* #F6F1E6 sand */
+    --foreground: 25 26% 9%;       /* #1F1812 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card: 42 100% 97%;           /* #FFFBF2 */
+    --card-foreground: 25 26% 9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
+    --popover: 42 100% 97%;
+    --popover-foreground: 25 26% 9%;
 
-    --primary: 245 58% 51%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 16 64% 47%;         /* #C5532A terracotta */
+    --primary-foreground: 42 100% 97%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 240 10% 10%;
+    --secondary: 38 34% 86%;       /* #ECE1CC */
+    --secondary-foreground: 25 26% 9%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 8% 46%;
+    --muted: 38 34% 86%;           /* #ECE1CC */
+    --muted-foreground: 25 17% 30%; /* #5A4F40 */
 
-    --accent: 200 95% 94%;
-    --accent-foreground: 200 90% 25%;
+    --accent: 27 70% 63%;          /* #E89A5C peach */
+    --accent-foreground: 25 26% 9%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 42 100% 97%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 245 58% 51%;
+    --border: 38 36% 80%;          /* #E0D4BC */
+    --input: 38 36% 80%;
+    --ring: 16 64% 47%;
 
-    --radius: 0.75rem;
+    /* Coastline radii: sm=4 md=8 lg=14 xl=20 */
+    --radius: 0.875rem;            /* 14px — lg */
   }
 
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 40 30% 98%;
+    --background: 30 27% 6%;       /* #15110B */
+    --foreground: 38 57% 91%;      /* #F4ECDD */
 
-    --card: 240 10% 8%;
-    --card-foreground: 40 30% 98%;
+    --card: 28 24% 9%;             /* #1E1812 */
+    --card-foreground: 38 57% 91%;
 
-    --popover: 240 10% 8%;
-    --popover-foreground: 40 30% 98%;
+    --popover: 28 24% 9%;
+    --popover-foreground: 38 57% 91%;
 
-    --primary: 245 58% 65%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 17 75% 60%;         /* #E8794A */
+    --primary-foreground: 30 27% 6%;
 
-    --secondary: 240 10% 14%;
-    --secondary-foreground: 40 30% 98%;
+    --secondary: 30 22% 13%;       /* #2A2218 */
+    --secondary-foreground: 38 57% 91%;
 
-    --muted: 240 10% 14%;
-    --muted-foreground: 220 8% 60%;
+    --muted: 30 22% 13%;
+    --muted-foreground: 38 24% 68%; /* #BFAF99 */
 
-    --accent: 200 50% 20%;
-    --accent-foreground: 200 90% 80%;
+    --accent: 30 85% 71%;          /* #F5B57B */
+    --accent-foreground: 30 27% 6%;
 
     --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 38 57% 91%;
 
-    --border: 240 10% 18%;
-    --input: 240 10% 18%;
-    --ring: 245 58% 65%;
+    --border: 30 42% 15%;          /* #332919 */
+    --input: 30 42% 15%;
+    --ring: 17 75% 60%;
   }
 
   * {
@@ -72,11 +73,24 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'cv01', 'cv03', 'cv04';
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  /* Coastline mono eyebrow utility */
+  .eyebrow {
+    @apply font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground;
+  }
+  /* Hide scrollbar */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

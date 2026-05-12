@@ -160,14 +160,18 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
         <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
       </button>
 
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-2xl font-bold">Expenses</h1>
+      <div className="flex items-end justify-between mb-5">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Trip total</p>
+          <h1 className="font-display italic text-[42px] leading-none tracking-[-0.01em] text-foreground">
+            £{totalGbp.toFixed(2)}
+          </h1>
+        </div>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1 text-primary text-sm font-medium">
+          className="flex items-center gap-1.5 text-sm font-semibold text-primary-foreground bg-primary px-4 py-2 rounded-full mb-1">
           <Plus className="w-4 h-4" /> Add
         </button>
       </div>
-      <p className="text-muted-foreground text-sm mb-4">Total: <span className="font-semibold text-foreground">£{totalGbp.toFixed(2)}</span></p>
 
       {/* Offline banner */}
       <AnimatePresence>
@@ -296,13 +300,13 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
                   const isMe = t.from === currentUserId
                   const pendingForThis = pendingPayments.find(p => p.from_user_id === t.from && p.to_user_id === t.to)
                   return (
-                    <div key={i} className="bg-card border border-border rounded-2xl px-4 py-3">
+                    <div key={i} className="bg-card border border-border rounded-lg px-4 py-3">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold">
                             {isMe ? 'You' : memberName(t.from)} → {t.to === currentUserId ? 'you' : memberName(t.to)}
                           </p>
-                          <p className="text-xs text-muted-foreground font-semibold">£{t.amount.toFixed(2)}</p>
+                          <p className="font-mono text-[13px] text-primary font-semibold mt-0.5">£{t.amount.toFixed(2)}</p>
                         </div>
                         <div className="flex gap-2">
                           {isMe && !pendingForThis && (
