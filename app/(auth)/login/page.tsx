@@ -1,29 +1,84 @@
 'use client'
 
-import { useState } from 'react'
-import { requestMagicLink } from '@/app/actions/auth'
+import { useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { requestOtp, ensureUserSetup } from '@/app/actions/auth'
 import { Plane } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Suspense } from 'react'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [state, setState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle')
+type Stage = 'email' | 'code' | 'verifying' | 'error'
+
+function LoginForm() {
+  const router = useRouter()
+  const params = useSearchParams()
+  const [email, setEmail] = useState(params.get('email') ?? '')
+  const [code, setCode] = useState('')
+  const [stage, setStage] = useState<Stage>('email')
   const [errorMsg, setErrorMsg] = useState('')
+  const [sending, setSending] = useState(false)
+  const codeInputRef = useRef<HTMLInputElement>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Focus code input when it appears
+  useEffect(() => {
+    if (stage === 'code') codeInputRef.current?.focus()
+  }, [stage])
+
+  async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email.trim()) return
-    setState('loading')
+    if (!email.trim() || sending) return
+    setSending(true)
     setErrorMsg('')
 
-    const result = await requestMagicLink(email.trim())
+    const result = await requestOtp(email.trim())
+    setSending(false)
 
     if (result.error) {
       setErrorMsg(result.error)
-      setState('error')
+      setStage('error')
     } else {
-      setState('sent')
+      setStage('code')
     }
+  }
+
+  async function handleCodeSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (code.length !== 6 || stage === 'verifying') return
+    setStage('verifying')
+    setErrorMsg('')
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code.trim(),
+      type: 'email',
+    })
+
+    if (error) {
+      setErrorMsg('That code didn\'t work. Check it and try again, or go back and resend.')
+      setStage('error')
+      return
+    }
+
+    // Server-side: create profile if new user, convert invitations
+    const setup = await ensureUserSetup()
+    if (setup.error) {
+      setErrorMsg(setup.error)
+      setStage('error')
+      return
+    }
+
+    if (!setup.onboardingComplete) {
+      router.replace('/onboarding')
+    } else {
+      router.replace('/trips')
+    }
+  }
+
+  function handleCodeChange(val: string) {
+    const digits = val.replace(/\D/g, '').slice(0, 6)
+    setCode(digits)
   }
 
   return (
@@ -44,33 +99,15 @@ export default function LoginPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {state === 'sent' ? (
-            <motion.div
-              key="sent"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center space-y-3"
-            >
-              <div className="text-4xl">✉️</div>
-              <h2 className="text-xl font-semibold">Check your email</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                We sent a sign-in link to{' '}
-                <span className="font-medium text-foreground">{email}</span>.
-                Tap it to continue.
-              </p>
-              <button
-                onClick={() => setState('idle')}
-                className="text-primary text-sm underline-offset-2 hover:underline mt-2"
-              >
-                Use a different email
-              </button>
-            </motion.div>
-          ) : (
+
+          {/* Email stage */}
+          {(stage === 'email' || (stage === 'error' && code === '')) && (
             <motion.form
-              key="form"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              onSubmit={handleSubmit}
+              key="email"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -16 }}
+              onSubmit={handleEmailSubmit}
               className="space-y-4"
             >
               <div className="space-y-2">
@@ -89,31 +126,95 @@ export default function LoginPage() {
                 />
               </div>
 
-              {state === 'error' && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2"
-                >
+              {stage === 'error' && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
                   {errorMsg}
                 </motion.p>
               )}
 
               <button
                 type="submit"
-                disabled={state === 'loading' || !email.trim()}
+                disabled={sending || !email.trim()}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-base shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
               >
-                {state === 'loading' ? 'Sending link…' : 'Continue with email'}
+                {sending ? 'Sending code…' : 'Send sign-in code'}
               </button>
 
-              <p className="text-center text-xs text-muted-foreground pt-2">
-                We&apos;ll email you a magic link — no password needed.
+              <p className="text-center text-xs text-muted-foreground pt-1">
+                We&apos;ll email you a 6-digit code — no password needed.
               </p>
             </motion.form>
           )}
+
+          {/* Code entry stage */}
+          {(stage === 'code' || stage === 'verifying' || (stage === 'error' && code !== '')) && (
+            <motion.form
+              key="code"
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              onSubmit={handleCodeSubmit}
+              className="space-y-4"
+            >
+              <div className="text-center mb-2">
+                <p className="text-sm text-muted-foreground">
+                  We sent a 6-digit code to{' '}
+                  <span className="font-medium text-foreground">{email}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="code" className="text-sm font-medium text-foreground">
+                  Enter your code
+                </label>
+                <input
+                  ref={codeInputRef}
+                  id="code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  placeholder="000000"
+                  maxLength={6}
+                  className="w-full h-14 px-4 rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-2xl font-mono tracking-[0.3em] text-center"
+                />
+              </div>
+
+              {stage === 'error' && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                  {errorMsg}
+                </motion.p>
+              )}
+
+              <button
+                type="submit"
+                disabled={code.length !== 6 || stage === 'verifying'}
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-base shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+              >
+                {stage === 'verifying' ? 'Signing in…' : 'Sign in'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setCode(''); setStage('email'); setErrorMsg('') }}
+                className="w-full text-sm text-muted-foreground text-center underline-offset-2 hover:underline"
+              >
+                Use a different email or resend code
+              </button>
+            </motion.form>
+          )}
+
         </AnimatePresence>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

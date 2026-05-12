@@ -34,7 +34,7 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
     if (isMember) return { error: 'This person is already on the trip' }
   }
 
-  const { data: trip } = await db.from('trips').select('name').eq('id', tripId).single()
+  const { data: trip } = await db.from('trips').select('name, destination_name, start_date, end_date').eq('id', tripId).single()
   const { data: inviter } = await db.from('users').select('display_name').eq('id', user.id).single()
 
   // Create invitation record
@@ -51,26 +51,54 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
   // Send email via Resend
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wayfarer-plum.vercel.app'
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'SquadStay <onboarding@resend.dev>'
+  const loginUrl = `${appUrl}/login?email=${encodeURIComponent(email.toLowerCase())}`
+
+  const tripDates = trip?.start_date && trip?.end_date
+    ? (() => {
+        const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+        return `${fmt(trip.start_date)} – ${fmt(trip.end_date)}`
+      })()
+    : null
+
   try {
     await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: `You've been invited to ${trip?.name} on SquadStay`,
+      subject: `You're invited to ${trip?.name ?? 'a trip'} ✈️`,
       html: `
-        <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-          <div style="background: linear-gradient(135deg, #C5532A, #E89A5C); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
-            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ SquadStay</h1>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 14px;">Group Holiday Planner</p>
+        <!DOCTYPE html>
+        <html>
+        <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="margin:0;padding:0;background:#F6F1E6;font-family:system-ui,-apple-system,sans-serif;">
+          <div style="max-width:420px;margin:0 auto;padding:32px 20px;">
+
+            <div style="background:linear-gradient(135deg,#C5532A,#E89A5C);border-radius:20px;padding:28px 32px;text-align:center;margin-bottom:24px;">
+              <div style="font-size:32px;margin-bottom:6px;">✈️</div>
+              <h1 style="color:white;font-size:22px;font-weight:700;margin:0;letter-spacing:-0.4px;">SquadStay</h1>
+            </div>
+
+            <div style="background:#FFFBF2;border:1px solid #E0D4BC;border-radius:16px;padding:32px;margin-bottom:16px;">
+              <p style="color:#C5532A;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;">You're invited</p>
+              <h2 style="font-size:24px;font-weight:700;color:#15110B;margin:0 0 6px;letter-spacing:-0.4px;">Come join the squad!</h2>
+              <p style="color:#6B5E4E;font-size:15px;line-height:1.6;margin:0 0 24px;">
+                <strong>${inviter?.display_name ?? 'Someone'}</strong> has invited you to join
+                <strong>${trip?.name ?? 'a trip'}</strong>${trip?.destination_name ? ` in <strong>${trip.destination_name}</strong>` : ''}${tripDates ? ` (${tripDates})` : ''}.
+              </p>
+
+              <a href="${loginUrl}"
+                style="display:block;background:#C5532A;color:white;text-decoration:none;font-weight:600;font-size:16px;padding:16px 32px;border-radius:999px;text-align:center;margin-bottom:20px;">
+                View invitation →
+              </a>
+
+              <p style="color:#9E8E7A;font-size:13px;text-align:center;margin:0;">
+                Sign in to SquadStay — your invitation will be waiting.
+              </p>
+            </div>
+
+            <p style="text-align:center;color:#9E8E7A;font-size:12px;">If you weren't expecting this, you can ignore it.</p>
           </div>
-          <h2 style="font-size: 20px; margin: 0 0 12px; color: #1a1a2e;">${inviter?.display_name ?? 'Someone'} invited you to join a trip!</h2>
-          <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-            You've been invited to <strong>${trip?.name}</strong> on SquadStay as a <strong>${role}</strong>.
-          </p>
-          <a href="${appUrl}/login" style="display: inline-block; background: #C5532A; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
-            View invitation →
-          </a>
-          <p style="color: #94a3b8; font-size: 13px;">Sign in with this email address to see the invitation in your notifications.</p>
-        </div>
+        </body>
+        </html>
       `,
     })
   } catch { /* email failure is non-fatal */ }
@@ -127,31 +155,43 @@ export async function resendInvitationEmail(tripId: string, invitationId: string
   const { data: inv } = await db.from('invitations').select('*').eq('id', invitationId).eq('trip_id', tripId).single()
   if (!inv) return { error: 'Invitation not found' }
 
-  const { data: trip } = await db.from('trips').select('name').eq('id', tripId).single()
+  const { data: trip } = await db.from('trips').select('name, destination_name, start_date, end_date').eq('id', tripId).single()
   const { data: inviter } = await db.from('users').select('display_name').eq('id', user.id).single()
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wayfarer-plum.vercel.app'
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'SquadStay <onboarding@resend.dev>'
+  const loginUrl = `${appUrl}/login?email=${encodeURIComponent(inv.invited_email)}`
   try {
     await resend.emails.send({
       from: fromEmail,
       to: inv.invited_email,
-      subject: `Reminder: You've been invited to ${trip?.name} on SquadStay`,
+      subject: `Reminder: you're invited to ${trip?.name ?? 'a trip'} ✈️`,
       html: `
-        <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-          <div style="background: linear-gradient(135deg, #C5532A, #E89A5C); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
-            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ SquadStay</h1>
-            <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 14px;">Group Holiday Planner</p>
+        <!DOCTYPE html>
+        <html>
+        <head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="margin:0;padding:0;background:#F6F1E6;font-family:system-ui,-apple-system,sans-serif;">
+          <div style="max-width:420px;margin:0 auto;padding:32px 20px;">
+            <div style="background:linear-gradient(135deg,#C5532A,#E89A5C);border-radius:20px;padding:28px 32px;text-align:center;margin-bottom:24px;">
+              <div style="font-size:32px;margin-bottom:6px;">✈️</div>
+              <h1 style="color:white;font-size:22px;font-weight:700;margin:0;">SquadStay</h1>
+            </div>
+            <div style="background:#FFFBF2;border:1px solid #E0D4BC;border-radius:16px;padding:32px;margin-bottom:16px;">
+              <p style="color:#C5532A;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;margin:0 0 10px;">Reminder</p>
+              <h2 style="font-size:22px;font-weight:700;color:#15110B;margin:0 0 12px;">Still waiting for you!</h2>
+              <p style="color:#6B5E4E;font-size:15px;line-height:1.6;margin:0 0 24px;">
+                <strong>${inviter?.display_name ?? 'Someone'}</strong> invited you to join <strong>${trip?.name ?? 'a trip'}</strong> on SquadStay. Your spot is still open.
+              </p>
+              <a href="${loginUrl}"
+                style="display:block;background:#C5532A;color:white;text-decoration:none;font-weight:600;font-size:16px;padding:16px 32px;border-radius:999px;text-align:center;margin-bottom:20px;">
+                View invitation →
+              </a>
+              <p style="color:#9E8E7A;font-size:13px;text-align:center;margin:0;">Sign in to SquadStay — your invitation will be waiting.</p>
+            </div>
+            <p style="text-align:center;color:#9E8E7A;font-size:12px;">If you weren't expecting this, you can ignore it.</p>
           </div>
-          <h2 style="font-size: 20px; margin: 0 0 12px; color: #1a1a2e;">Reminder: ${inviter?.display_name ?? 'Someone'} invited you to join a trip!</h2>
-          <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-            You've been invited to <strong>${trip?.name}</strong> on SquadStay as a <strong>${inv.invited_role}</strong>.
-          </p>
-          <a href="${appUrl}/login" style="display: inline-block; background: #C5532A; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
-            View invitation →
-          </a>
-          <p style="color: #94a3b8; font-size: 13px;">Sign in with this email address to see the invitation in your notifications.</p>
-        </div>
+        </body>
+        </html>
       `,
     })
   } catch { return { error: 'Failed to send email' } }
