@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { requestMagicLink } from '@/app/actions/auth'
 import { Plane } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -16,16 +16,10 @@ export default function LoginPage() {
     setState('loading')
     setErrorMsg('')
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    const result = await requestMagicLink(email.trim())
 
-    if (error) {
-      setErrorMsg(error.message)
+    if (result.error) {
+      setErrorMsg(result.error)
       setState('error')
     } else {
       setState('sent')

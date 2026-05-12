@@ -55,14 +55,14 @@ export async function GET(request: Request) {
           )
         }
 
-        return NextResponse.redirect(`${origin}/onboarding`)
+        return NextResponse.redirect(`${origin}/auth/open?next=/onboarding`)
       }
 
       if (!existingUser.onboarding_complete) {
-        return NextResponse.redirect(`${origin}/onboarding`)
+        return NextResponse.redirect(`${origin}/auth/open?next=/onboarding`)
       }
 
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${origin}/auth/open?next=${next}`)
     }
   }
 

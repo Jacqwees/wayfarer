@@ -324,7 +324,17 @@ The app uses the "Coastline" design language (Direction D hybrid). All screens h
 
 These are ordered by priority / dependency:
 
-### 1. Push Notifications (infrastructure mostly done)
+### 1. Magic link deep-linking (DONE — bridge page + custom email)
+- [x] Custom Resend email sent via `app/actions/auth.ts` using `supabase.auth.admin.generateLink`
+- [x] `/auth/open` bridge page — detects webview, auto-redirects in normal browser, shows "Open in Safari/Chrome" instructions in Gmail webview
+- [x] Login page calls `requestMagicLink` server action instead of `signInWithOtp`
+- Known limitation: on iOS Gmail the user must tap "Open in Safari" manually — no workaround without a native app / Universal Links entitlement
+
+### 2. Loading screens (DONE)
+- [x] `loading.tsx` added to: trips list, trip dashboard, notifications, profile, and all trip sub-pages (expenses, itinerary, flights, hotel, places, members, invite, packing, settings)
+- Button-level loading states (spinner on tap): individual forms handle this — login already has it; other forms use React state `loading` flags per component
+
+### 3. Push Notifications (infrastructure mostly done)
 - `app/actions/push.ts` and `public/sw.js` exist with push handler
 - Still needed:
   - Add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` to Vercel dashboard
