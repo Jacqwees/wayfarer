@@ -45,7 +45,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-4 shadow-lg">
             <Plane className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Wayfarer</h1>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">SquadStay</h1>
           <p className="text-muted-foreground text-sm mt-1">Plan trips. Share memories.</p>
         </div>
 

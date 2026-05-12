@@ -21,13 +21,13 @@ const mono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Wayfarer',
+  title: 'SquadStay',
   description: 'Plan group holidays together',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Wayfarer',
+    title: 'SquadStay',
     startupImage: '/icons/apple-touch-icon.png',
   },
   icons: {

@@ -45,7 +45,7 @@ export default function StepName({
 
   return (
     <motion.div {...slide} transition={{ duration: 0.3, ease: 'easeOut' }} className="flex flex-col flex-1">
-      <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-1">Welcome to Wayfarer</h1>
+      <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-1">Welcome to SquadStay</h1>
       <p className="text-muted-foreground text-sm mb-8">
         Let&apos;s set up your profile so your travel crew can find you.
       </p>

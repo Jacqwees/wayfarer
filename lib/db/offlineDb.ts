@@ -14,15 +14,15 @@ export interface PendingExpense {
   createdAt: number
 }
 
-export class WayfarerDB extends Dexie {
+export class SquadStayDB extends Dexie {
   pendingExpenses!: Table<PendingExpense>
 
   constructor() {
-    super('WayfarerDB')
+    super('SquadStayDB')
     this.version(1).stores({
       pendingExpenses: '++id, tripId, createdAt',
     })
   }
 }
 
-export const db = new WayfarerDB()
+export const db = new SquadStayDB()

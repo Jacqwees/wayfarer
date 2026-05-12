@@ -1,4 +1,4 @@
-// Custom service worker additions for Wayfarer — push notification handler
+// Custom service worker additions for SquadStay — push notification handler
 
 self.addEventListener('push', (event) => {
   if (!event.data) return
@@ -7,7 +7,7 @@ self.addEventListener('push', (event) => {
   try {
     data = event.data.json()
   } catch {
-    data = { title: 'Wayfarer', body: event.data.text() }
+    data = { title: 'SquadStay', body: event.data.text() }
   }
 
   const options = {
@@ -16,12 +16,12 @@ self.addEventListener('push', (event) => {
     badge: '/icons/favicon-32.png',
     data: { url: data.url ?? '/' },
     vibrate: [100, 50, 100],
-    tag: data.tag ?? 'wayfarer-notification',
+    tag: data.tag ?? 'squadstay-notification',
     renotify: true,
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title ?? 'Wayfarer', options)
+    self.registration.showNotification(data.title ?? 'SquadStay', options)
   )
 })
 

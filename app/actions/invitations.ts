@@ -49,22 +49,24 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
   if (invErr || !invitation) return { error: invErr?.message ?? 'Failed to create invitation' }
 
   // Send email via Resend
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wayfarer-plum.vercel.app'
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'SquadStay <onboarding@resend.dev>'
   try {
     await resend.emails.send({
-      from: 'Wayfarer <onboarding@resend.dev>',
+      from: fromEmail,
       to: email,
-      subject: `You've been invited to ${trip?.name} on Wayfarer`,
+      subject: `You've been invited to ${trip?.name} on SquadStay`,
       html: `
         <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-          <div style="background: linear-gradient(135deg, #6366f1, #7c3aed); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
-            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ Wayfarer</h1>
+          <div style="background: linear-gradient(135deg, #C5532A, #E89A5C); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
+            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ SquadStay</h1>
             <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 14px;">Group Holiday Planner</p>
           </div>
           <h2 style="font-size: 20px; margin: 0 0 12px; color: #1a1a2e;">${inviter?.display_name ?? 'Someone'} invited you to join a trip!</h2>
           <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-            You've been invited to <strong>${trip?.name}</strong> on Wayfarer as a <strong>${role}</strong>.
+            You've been invited to <strong>${trip?.name}</strong> on SquadStay as a <strong>${role}</strong>.
           </p>
-          <a href="https://wayfarer-plum.vercel.app/login" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
+          <a href="${appUrl}/login" style="display: inline-block; background: #C5532A; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
             View invitation →
           </a>
           <p style="color: #94a3b8; font-size: 13px;">Sign in with this email address to see the invitation in your notifications.</p>
@@ -128,22 +130,24 @@ export async function resendInvitationEmail(tripId: string, invitationId: string
   const { data: trip } = await db.from('trips').select('name').eq('id', tripId).single()
   const { data: inviter } = await db.from('users').select('display_name').eq('id', user.id).single()
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wayfarer-plum.vercel.app'
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'SquadStay <onboarding@resend.dev>'
   try {
     await resend.emails.send({
-      from: 'Wayfarer <onboarding@resend.dev>',
+      from: fromEmail,
       to: inv.invited_email,
-      subject: `Reminder: You've been invited to ${trip?.name} on Wayfarer`,
+      subject: `Reminder: You've been invited to ${trip?.name} on SquadStay`,
       html: `
         <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-          <div style="background: linear-gradient(135deg, #6366f1, #7c3aed); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
-            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ Wayfarer</h1>
+          <div style="background: linear-gradient(135deg, #C5532A, #E89A5C); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px;">
+            <h1 style="color: white; font-size: 28px; margin: 0 0 8px;">✈️ SquadStay</h1>
             <p style="color: rgba(255,255,255,0.8); margin: 0; font-size: 14px;">Group Holiday Planner</p>
           </div>
           <h2 style="font-size: 20px; margin: 0 0 12px; color: #1a1a2e;">Reminder: ${inviter?.display_name ?? 'Someone'} invited you to join a trip!</h2>
           <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-            You've been invited to <strong>${trip?.name}</strong> on Wayfarer as a <strong>${inv.invited_role}</strong>.
+            You've been invited to <strong>${trip?.name}</strong> on SquadStay as a <strong>${inv.invited_role}</strong>.
           </p>
-          <a href="https://wayfarer-plum.vercel.app/login" style="display: inline-block; background: #6366f1; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
+          <a href="${appUrl}/login" style="display: inline-block; background: #C5532A; color: white; text-decoration: none; font-weight: 600; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin-bottom: 24px;">
             View invitation →
           </a>
           <p style="color: #94a3b8; font-size: 13px;">Sign in with this email address to see the invitation in your notifications.</p>

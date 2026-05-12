@@ -1,8 +1,8 @@
-# Wayfarer — Handover Document
+# SquadStay — Handover Document
 
 > Group holiday planning PWA. This file is the authoritative handover: what's built, how it works, what's left, and how to continue.
 
-**Live:** https://wayfarer-plum.vercel.app  
+**Live:** https://wayfarer-plum.vercel.app (update once custom domain is set)  
 **Repo:** https://github.com/Jacqwees/wayfarer  
 **Supabase:** https://supabase.com/dashboard/project/fkybsfpdhvjitivsylnj  
 **Vercel:** https://vercel.com (auto-deploys on push to `main`)
@@ -44,6 +44,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSy...
 RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=SquadStay <noreply@yourdomain.com>   (set once domain verified in Resend)
+NEXT_PUBLIC_APP_URL=https://yourdomain.com             (set once custom domain live)
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=...   (push — not yet added to Vercel)
 VAPID_PRIVATE_KEY=...              (push — not yet added to Vercel)
 ```
@@ -334,11 +336,27 @@ These are ordered by priority / dependency:
 - Plan: use Dexie.js (IndexedDB) to queue expense adds when offline, sync on reconnect, show "pending sync" badge on queued items
 - Files to touch: `public/sw.js`, new `lib/offline-queue.ts`, `components/trips/ExpensesView.tsx`
 
-### 3. Email Deliverability
-- Resend is configured as Supabase SMTP
-- Emails only arrive reliably to the Resend-verified sender domain
-- **Action needed:** Verify a custom domain in Resend dashboard (`app.resend.com`) and update Supabase SMTP settings to send from that domain
-- Until then, invites sent to arbitrary email addresses may not arrive
+### 3. Email Deliverability (currently broken — fix required)
+**Root cause:** Both email flows use `onboarding@resend.dev` as the sender. Resend's sandbox domain only delivers to the email address you registered your Resend account with — all other recipients are silently dropped.
+
+**Fix (two steps):**
+
+**Step 1 — Verify a domain in Resend:**
+- Go to `app.resend.com` → Domains → Add Domain
+- Add your domain (e.g. `squadstay.com` or a subdomain like `mail.yourdomain.com`)
+- Add the DNS records Resend gives you (takes ~10 min to verify)
+
+**Step 2 — Set env vars in Vercel dashboard:**
+```
+RESEND_FROM_EMAIL=SquadStay <noreply@yourdomain.com>
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
+```
+The invitation code already reads these — no further code change needed.
+
+**Step 3 — Fix magic link emails (Supabase Auth):**
+- Supabase dashboard → Authentication → Settings → SMTP Settings
+- Make sure "Sender email" matches a verified Resend domain address (same domain as above)
+- The SMTP host/port/credentials should already be Resend's — just update the From address
 
 ### 4. Domain
 - Site is live at `wayfarer-plum.vercel.app` (Vercel default)

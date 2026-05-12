@@ -1,6 +1,6 @@
 {
-  "name": "Wayfarer",
-  "short_name": "Wayfarer",
+  "name": "SquadStay",
+  "short_name": "SquadStay",
   "description": "Plan group holidays together",
   "start_url": "/",
   "display": "standalone",
