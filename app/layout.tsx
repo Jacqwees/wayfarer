@@ -1,22 +1,16 @@
 import type { Metadata, Viewport } from 'next'
-import { Newsreader, Geist, Geist_Mono } from 'next/font/google'
+import { Newsreader } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
-const sans = Geist({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-})
+// Geist + Geist Mono come from the 'geist' package (Vercel fonts, not Google Fonts)
+// Their CSS variables are --font-geist-sans and --font-geist-mono by default
 const display = Newsreader({
   subsets: ['latin'],
   weight: ['400', '500'],
   style: ['normal', 'italic'],
   variable: '--font-display',
-  display: 'swap',
-})
-const mono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
   display: 'swap',
 })
 
@@ -46,7 +40,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${display.variable}`}>
       <body className="font-sans antialiased bg-background text-foreground">
         {children}
       </body>
