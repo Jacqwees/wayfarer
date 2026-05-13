@@ -25,9 +25,11 @@ const STEPS = ['name', 'details', 'notifications', 'ready'] as const
 export default function OnboardingFlow({
   userId,
   initialEmail,
+  next,
 }: {
   userId: string
   initialEmail: string
+  next?: string
 }) {
   const router = useRouter()
   const [step, setStep] = useState(0)
@@ -130,6 +132,7 @@ export default function OnboardingFlow({
               hasPendingInvites={hasPendingInvites}
               onCreateTrip={() => router.push('/trips/new')}
               onCheckInvites={() => router.push('/notifications')}
+              onJoinTrip={next ? () => router.push(next) : undefined}
             />
           )}
         </AnimatePresence>

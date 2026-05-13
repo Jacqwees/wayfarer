@@ -187,11 +187,19 @@ function DashTile({
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
+type TileStats = {
+  itineraryCount: number
+  placesCount: number
+  packingPacked: number
+  packingTotal: number
+}
+
 export default function TripDashboard({
-  trip, role, members, permissions, unreadCount, userId, netBalance
+  trip, role, members, permissions, unreadCount, userId, netBalance, stats
 }: {
   trip: Trip; role: string; members: Member[]; permissions: any
   unreadCount: number; userId: string; netBalance: number
+  stats: TileStats
 }) {
   const router = useRouter()
   const canInvite = role === 'owner' || (role === 'member' && permissions?.members_can_invite)
@@ -203,6 +211,20 @@ export default function TripDashboard({
     : netBalance < 0
       ? `-£${Math.abs(netBalance).toFixed(2)}`
       : 'Settled'
+
+  const packingLabel = stats.packingTotal === 0
+    ? 'Nothing added yet'
+    : stats.packingPacked === stats.packingTotal
+      ? `All ${stats.packingTotal} packed ✓`
+      : `${stats.packingPacked} / ${stats.packingTotal} packed`
+
+  const itineraryLabel = stats.itineraryCount === 0
+    ? 'Nothing planned yet'
+    : `${stats.itineraryCount} item${stats.itineraryCount === 1 ? '' : 's'} planned`
+
+  const placesLabel = stats.placesCount === 0
+    ? 'None saved yet'
+    : `${stats.placesCount} place${stats.placesCount === 1 ? '' : 's'} saved`
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -287,13 +309,13 @@ export default function TripDashboard({
 
           {/* Itinerary — accent dark tile */}
           <DashTile
-            icon={CalendarDays} eyebrow="Itinerary" stat="Day plan"
-            sub="View & edit" href={`/trips/${trip.id}/itinerary`} accent delay={0.10}
+            icon={CalendarDays} eyebrow="Itinerary" stat={itineraryLabel}
+            href={`/trips/${trip.id}/itinerary`} accent delay={0.10}
           />
 
           <DashTile
-            icon={MapPin} eyebrow="Things to do" stat="Places"
-            sub="Explore & save" href={`/trips/${trip.id}/places`} delay={0.13}
+            icon={MapPin} eyebrow="Things to do" stat={placesLabel}
+            href={`/trips/${trip.id}/places`} delay={0.13}
           />
 
           {role !== 'viewer' && (
@@ -308,8 +330,8 @@ export default function TripDashboard({
           )}
 
           <DashTile
-            icon={PackageCheck} eyebrow="Packing" stat="Packing"
-            sub="What to bring" href={`/trips/${trip.id}/packing`} delay={0.19}
+            icon={PackageCheck} eyebrow="Packing" stat={packingLabel}
+            href={`/trips/${trip.id}/packing`} delay={0.19}
           />
 
           <DashTile

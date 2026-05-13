@@ -8,11 +8,13 @@ export default function StepReady({
   hasPendingInvites,
   onCreateTrip,
   onCheckInvites,
+  onJoinTrip,
 }: {
   displayName: string
   hasPendingInvites: boolean
   onCreateTrip: () => void
   onCheckInvites: () => void
+  onJoinTrip?: () => void
 }) {
   return (
     <motion.div
@@ -40,22 +42,33 @@ export default function StepReady({
       </div>
 
       <div className="w-full space-y-3 pt-4">
-        {hasPendingInvites && (
+        {onJoinTrip && (
+          <button
+            onClick={onJoinTrip}
+            className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          >
+            <MapPin className="w-4 h-4" />
+            Join your trip →
+          </button>
+        )}
+        {hasPendingInvites && !onJoinTrip && (
           <button
             onClick={onCheckInvites}
-            className="w-full h-12 rounded-xl bg-accent text-accent-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Bell className="w-4 h-4" />
             Check your trip invites
           </button>
         )}
-        <button
-          onClick={onCreateTrip}
-          className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-        >
-          <MapPin className="w-4 h-4" />
-          Create your first trip
-        </button>
+        {!onJoinTrip && (
+          <button
+            onClick={onCreateTrip}
+            className={`w-full h-12 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform font-semibold text-sm rounded-full ${hasPendingInvites ? 'border border-border text-foreground' : 'bg-primary text-primary-foreground text-base'}`}
+          >
+            <MapPin className="w-4 h-4" />
+            Create your first trip
+          </button>
+        )}
       </div>
     </motion.div>
   )

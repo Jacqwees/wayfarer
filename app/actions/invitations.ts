@@ -122,24 +122,20 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
     })
   } catch { /* email failure is non-fatal */ }
 
-  // Notify existing members
+  // Notify existing members that an invitation was sent (informational — NOT the accept/decline type)
   const { data: members } = await db.from('trip_members').select('user_id').eq('trip_id', tripId)
   if (members) {
     await db.from('notifications').insert(
       members.map(m => ({
         user_id: m.user_id,
-        type: 'trip_invitation',
+        type: 'invitation_sent',
         trip_id: tripId,
         reference_id: invitation.id,
         message: `${inviter?.display_name ?? 'Someone'} invited ${email} to ${trip?.name}`,
       }))
     )
-  }
-
-  // Push notification to existing members
-  if (members) {
     for (const m of members) {
-      sendPushToUser(m.user_id, { title: 'New invitation sent', body: `${inviter?.display_name ?? 'Someone'} invited ${email} to ${trip?.name}`, url: '/notifications' }).catch(() => {})
+      sendPushToUser(m.user_id, { title: 'Invitation sent', body: `${inviter?.display_name ?? 'Someone'} invited ${email} to ${trip?.name}`, url: `/trips/${tripId}/invite`, tag: 'invitation' }).catch(() => {})
     }
   }
 
@@ -215,6 +211,42 @@ export async function resendInvitationEmail(tripId: string, invitationId: string
     })
   } catch { return { error: 'Failed to send email' } }
 
+  revalidatePath(`/trips/${tripId}/invite`)
+  return { success: true }
+}
+
+export async function generateInviteLink(tripId: string, role: 'member' | 'viewer' = 'member') {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated', url: null }
+
+  const db = createServiceClient()
+  const { data: membership } = await db.from('trip_members').select('role').eq('trip_id', tripId).eq('user_id', user.id).single()
+  if (!membership) return { error: 'Not a member', url: null }
+  if (membership.role !== 'owner') {
+    const { data: perms } = await db.from('trip_permissions').select('members_can_invite').eq('trip_id', tripId).single()
+    if (!perms?.members_can_invite) return { error: 'No permission to invite', url: null }
+  }
+
+  // Replace any existing link for this trip
+  await db.from('trip_invite_links' as any).delete().eq('trip_id', tripId)
+  const { data: link, error } = await db.from('trip_invite_links' as any).insert({
+    trip_id: tripId, created_by: user.id, role,
+  }).select('id').single()
+  if (error || !link) return { error: error?.message ?? 'Failed to generate link', url: null }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://squadstay.co.uk'
+  revalidatePath(`/trips/${tripId}/invite`)
+  return { error: null, url: `${appUrl}/join/${(link as any).id}` }
+}
+
+export async function revokeInviteLink(tripId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const db = createServiceClient()
+  await db.from('trip_invite_links' as any).delete().eq('trip_id', tripId)
   revalidatePath(`/trips/${tripId}/invite`)
   return { success: true }
 }

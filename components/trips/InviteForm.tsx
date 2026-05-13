@@ -3,15 +3,16 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Mail, Send, CheckCircle2, Loader2, Clock, X, RotateCcw } from 'lucide-react'
-import { sendInvitation, cancelInvitation, resendInvitationEmail } from '@/app/actions/invitations'
+import { ChevronLeft, Mail, Send, CheckCircle2, Loader2, Clock, X, RotateCcw, Link2, Copy, Check, Trash2 } from 'lucide-react'
+import { sendInvitation, cancelInvitation, resendInvitationEmail, generateInviteLink, revokeInviteLink } from '@/app/actions/invitations'
 
 type PendingInvitation = { id: string; invited_email: string; invited_role: string; created_at: string }
 
-export default function InviteForm({ tripId, tripName, pendingInvitations: initial }: {
+export default function InviteForm({ tripId, tripName, pendingInvitations: initial, existingInviteLink: initialLink }: {
   tripId: string
   tripName: string
   pendingInvitations: PendingInvitation[]
+  existingInviteLink: string | null
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -23,6 +24,30 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
   const [resendingId, setResendingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [resendOk, setResendOk] = useState<string | null>(null)
+  const [inviteLink, setInviteLink] = useState<string | null>(initialLink)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [generatingLink, setGeneratingLink] = useState(false)
+
+  async function handleGenerateLink() {
+    setGeneratingLink(true)
+    const res = await generateInviteLink(tripId)
+    setGeneratingLink(false)
+    if (res.url) setInviteLink(res.url)
+  }
+
+  async function handleCopyLink() {
+    if (!inviteLink) return
+    await navigator.clipboard.writeText(inviteLink)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  async function handleRevokeLink() {
+    startTransition(async () => {
+      await revokeInviteLink(tripId)
+      setInviteLink(null)
+    })
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -69,6 +94,53 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
 
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">to {tripName}</p>
       <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-7">Invite people</h1>
+
+      {/* ── Invite link section ───────────────────────────────── */}
+      <div className="mb-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Invite link</p>
+        {inviteLink ? (
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground font-mono truncate flex-1">{inviteLink.replace(/^https?:\/\//, '')}</p>
+            </div>
+            <p className="text-xs text-muted-foreground">Anyone with this link can join as a Member. Share it in your group chat.</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              >
+                {linkCopied ? <><Check className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy link</>}
+              </button>
+              <button
+                type="button"
+                onClick={handleRevokeLink}
+                disabled={isPending}
+                className="h-10 px-3 rounded-xl bg-destructive/10 text-destructive text-sm flex items-center justify-center disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleGenerateLink}
+            disabled={generatingLink}
+            className="w-full h-12 rounded-2xl border border-dashed border-border text-sm text-muted-foreground font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
+          >
+            {generatingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+            {generatingLink ? 'Generating…' : 'Generate invite link'}
+          </button>
+        )}
+      </div>
+
+      <div className="relative flex items-center gap-3 mb-6">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground font-mono">or invite by email</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

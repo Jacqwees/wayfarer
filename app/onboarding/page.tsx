@@ -2,7 +2,11 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow'
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: { next?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -14,7 +18,7 @@ export default async function OnboardingPage() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.onboarding_complete) redirect('/trips')
+  if (profile?.onboarding_complete) redirect(searchParams.next || '/trips')
 
-  return <OnboardingFlow userId={user.id} initialEmail={user.email ?? ''} />
+  return <OnboardingFlow userId={user.id} initialEmail={user.email ?? ''} next={searchParams.next} />
 }

@@ -24,6 +24,7 @@ function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const prefill = params.get('email') ?? ''
+  const nextPath = params.get('next') ?? ''
 
   const [email, setEmail] = useState(prefill)
   const [code, setCode] = useState('')
@@ -70,7 +71,7 @@ function LoginForm() {
       setStage('error')
       return
     }
-    router.replace('/auth/setup')
+    router.replace('/auth/setup' + (nextPath ? '?next=' + encodeURIComponent(nextPath) : ''))
   }
 
   function handleCodeChange(val: string) {

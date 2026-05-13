@@ -11,7 +11,11 @@ import { ensureUserSetup } from '@/app/actions/auth'
  * browser request is made, the session is guaranteed to be in cookies, and
  * the server action runs correctly.
  */
-export default async function SetupPage() {
+export default async function SetupPage({
+  searchParams,
+}: {
+  searchParams: { next?: string }
+}) {
   const setup = await ensureUserSetup()
 
   if (setup.error) {
@@ -19,9 +23,14 @@ export default async function SetupPage() {
     redirect('/login')
   }
 
+  const next = searchParams.next ?? ''
+
   if (!setup.onboardingComplete) {
-    redirect('/onboarding')
+    // New user — go through onboarding, carrying the next param so it
+    // survives through to the ready screen
+    redirect('/onboarding' + (next ? '?next=' + encodeURIComponent(next) : ''))
   }
 
-  redirect('/trips')
+  // Existing user — go to the intended destination (or /trips)
+  redirect(next || '/trips')
 }

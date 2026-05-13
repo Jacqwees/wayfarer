@@ -22,6 +22,7 @@ type Props = { notifications: Notification[]; userId: string }
 
 const typeConfig: Record<string, { icon: any; color: string }> = {
   trip_invitation: { icon: UserPlus, color: 'text-primary' },
+  invitation_sent: { icon: UserPlus, color: 'text-muted-foreground' },
   member_joined: { icon: Users, color: 'text-emerald-500' },
   expense_added: { icon: Receipt, color: 'text-amber-500' },
   payment_pending: { icon: Receipt, color: 'text-blue-500' },
@@ -79,6 +80,7 @@ export default function NotificationsView({ notifications: initial, userId }: Pr
       const destinations: Record<string, string> = {
         expense_added: 'expenses', payment_pending: 'expenses', payment_confirmed: 'expenses',
         nudge: 'expenses', member_joined: 'members', ownership_transfer: 'members',
+        invitation_sent: 'invite',
       }
       const sub = destinations[n.type]
       router.push(sub ? `/trips/${n.trip_id}/${sub}` : `/trips/${n.trip_id}`)

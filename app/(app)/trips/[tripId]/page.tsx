@@ -62,6 +62,20 @@ export default async function TripPage({ params }: { params: { tripId: string } 
   const totalOwedToMe = (splitsOwedToMe ?? []).reduce((s, r) => s + (r.amount_owed ?? 0), 0)
   const netBalance = totalOwedToMe - totalOwed
 
+  // Live tile stats — run in parallel
+  const [
+    { count: itineraryCount },
+    { count: placesCount },
+    { data: packingItems },
+  ] = await Promise.all([
+    supabase.from('itinerary_items').select('id', { count: 'exact', head: true }).eq('trip_id', params.tripId),
+    supabase.from('places').select('id', { count: 'exact', head: true }).eq('trip_id', params.tripId),
+    supabase.from('packing_items' as any).select('packed').eq('trip_id', params.tripId),
+  ])
+
+  const packingTotal = (packingItems as any[] | null)?.length ?? 0
+  const packingPacked = (packingItems as any[] | null)?.filter((i: any) => i.packed).length ?? 0
+
   return (
     <TripDashboard
       trip={trip}
@@ -71,6 +85,12 @@ export default async function TripPage({ params }: { params: { tripId: string } 
       unreadCount={unreadCount ?? 0}
       userId={user.id}
       netBalance={netBalance}
+      stats={{
+        itineraryCount: itineraryCount ?? 0,
+        placesCount: placesCount ?? 0,
+        packingPacked,
+        packingTotal,
+      }}
     />
   )
 }
