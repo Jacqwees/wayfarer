@@ -2,28 +2,96 @@
 
 import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { Camera, Loader2, LogOut, MapPin, Phone, FileText, Pencil, Check, X, ChevronRight } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Camera, Loader2, LogOut, MapPin, Phone, FileText,
+  Pencil, Check, X, Settings, Bell, Moon, Coins,
+} from 'lucide-react'
 import { updateProfile, updateAvatar, signOut } from '@/app/actions/profile'
 import { getUploadUrl } from '@/app/actions/trips'
 
 type Visibility = 'trip' | 'friend' | 'private'
 
+const ALL_TAGS = [
+  'Adventure', 'Food & Drink', 'Mountains', 'Beach',
+  'Festivals', 'Culture', 'City Breaks', 'Backpacking',
+  'Nightlife', 'Luxury', 'Road Trips', 'Wellness',
+]
+
+function joinedLabel(createdAt: string | null) {
+  if (!createdAt) return ''
+  const d = new Date(createdAt)
+  return `joined ${d.toLocaleDateString('en-GB', { month: 'short' })} '${String(d.getFullYear()).slice(2)}`
+}
+
+function StatCol({ num, label }: { num: string | number; label: string }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center py-3">
+      <span className="font-display italic text-[24px] leading-none tracking-[-0.01em] text-foreground">
+        {num}
+      </span>
+      <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mt-1">{label}</span>
+    </div>
+  )
+}
+
+function StatDivider() {
+  return <div className="w-px bg-border my-2" />
+}
+
+function SettingsRow({
+  icon: Icon, label, sub, danger, onClick,
+}: {
+  icon: React.ElementType; label: string; sub: string; danger?: boolean; onClick?: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 py-3 border-b border-dashed border-border last:border-0 active:bg-muted/50 transition-colors text-left"
+    >
+      <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+        <Icon className={`w-3.5 h-3.5 ${danger ? 'text-destructive' : 'text-foreground'}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-[13.5px] font-medium leading-tight ${danger ? 'text-destructive' : 'text-foreground'}`}>{label}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>
+      </div>
+    </button>
+  )
+}
+
 function VisibilityBadge({ value, onChange }: { value: Visibility; onChange: (v: Visibility) => void }) {
-  const opts: { v: Visibility; label: string }[] = [{ v: 'trip', label: 'Trip members' }, { v: 'private', label: 'Only me' }]
   return (
     <div className="flex gap-2 mt-1.5">
-      {opts.map(o => (
-        <button key={o.v} type="button" onClick={() => onChange(o.v)}
-          className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${value === o.v ? 'bg-primary text-primary-foreground border-primary' : 'border-input text-muted-foreground bg-card'}`}>
-          {o.label}
+      {(['trip', 'private'] as Visibility[]).map(v => (
+        <button
+          key={v} type="button" onClick={() => onChange(v)}
+          className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${value === v ? 'bg-primary text-primary-foreground border-primary' : 'border-input text-muted-foreground bg-card'}`}
+        >
+          {v === 'trip' ? 'Trip members' : 'Only me'}
         </button>
       ))}
     </div>
   )
 }
 
-export default function ProfileView({ profile, privacy, tripCount }: { profile: any; privacy: any; tripCount: number }) {
+type Stats = {
+  trips: number
+  countries: number
+  daysAway: number
+  squad: number
+  totalSpent: number
+}
+
+export default function ProfileView({
+  profile,
+  privacy,
+  stats,
+}: {
+  profile: any
+  privacy: any
+  stats: Stats
+}) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -35,13 +103,23 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
     phone: profile?.phone ?? '',
     bio: profile?.bio ?? '',
     home_city: profile?.home_city ?? '',
+    travel_tags: (profile?.travel_tags as string[]) ?? [],
     phone_visibility: (privacy?.phone_visibility ?? 'trip') as Visibility,
     bio_visibility: (privacy?.bio_visibility ?? 'trip') as Visibility,
     home_city_visibility: (privacy?.home_city_visibility ?? 'trip') as Visibility,
   })
   const [avatar, setAvatar] = useState<string | null>(profile?.avatar_url ?? null)
 
-  function update(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
+  function update(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
+
+  function toggleTag(tag: string) {
+    setForm(f => ({
+      ...f,
+      travel_tags: f.travel_tags.includes(tag)
+        ? f.travel_tags.filter(t => t !== tag)
+        : [...f.travel_tags, tag],
+    }))
+  }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -55,8 +133,7 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
       const { createClient } = await import('@/lib/supabase/client')
       const supabase = createClient()
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .uploadToSignedUrl(result.data.path, result.data.token, file, { contentType: file.type })
+        .from('avatars').uploadToSignedUrl(result.data.path, result.data.token, file, { contentType: file.type })
       if (uploadError) throw new Error(uploadError.message)
       const url = `https://fkybsfpdhvjitivsylnj.supabase.co/storage/v1/object/public/avatars/${path}?t=${Date.now()}`
       setAvatar(url)
@@ -67,7 +144,16 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
 
   async function handleSave() {
     startTransition(async () => {
-      await updateProfile({ ...form, phone: form.phone || null, bio: form.bio || null, home_city: form.home_city || null })
+      await updateProfile({
+        display_name: form.display_name,
+        phone: form.phone || null,
+        bio: form.bio || null,
+        home_city: form.home_city || null,
+        travel_tags: form.travel_tags,
+        phone_visibility: form.phone_visibility,
+        bio_visibility: form.bio_visibility,
+        home_city_visibility: form.home_city_visibility,
+      })
       setEditing(false)
     })
   }
@@ -77,128 +163,237 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
     router.push('/login')
   }
 
+  const eyebrow = [
+    form.home_city,
+    joinedLabel(profile?.created_at),
+  ].filter(Boolean).join(' · ')
+
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-6 flex items-center justify-between">
-        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Profile</h1>
+
+      {/* ── HERO ─────────────────────────────────────────────── */}
+      <div className="px-5 pt-14 pb-4 text-center relative">
+        {/* Edit / Save button */}
         <button
           onClick={() => editing ? handleSave() : setEditing(true)}
           disabled={isPending}
-          className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-colors ${editing ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}
+          className={`absolute top-14 right-5 flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-colors ${editing ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}
         >
-          {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : editing ? <><Check className="w-3.5 h-3.5" /> Save</> : <><Pencil className="w-3.5 h-3.5" /> Edit</>}
+          {isPending
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : editing
+              ? <><Check className="w-3.5 h-3.5" /> Save</>
+              : <><Pencil className="w-3.5 h-3.5" /> Edit</>}
         </button>
-      </div>
 
-      <div className="px-5 space-y-6">
-        {/* Avatar + name */}
-        <motion.div layout className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <button onClick={() => fileRef.current?.click()} className="w-24 h-24 rounded-full bg-muted overflow-hidden relative group">
-              {avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary text-3xl font-bold">
-                  {form.display_name[0]?.toUpperCase()}
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
-                {uploading ? <Loader2 className="w-5 h-5 text-white animate-spin" /> : <Camera className="w-5 h-5 text-white" />}
+        {/* Avatar */}
+        <div className="relative inline-block">
+          <button
+            onClick={() => editing && fileRef.current?.click()}
+            className="w-[92px] h-[92px] rounded-full bg-primary/20 overflow-hidden relative"
+          >
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-display italic text-[44px]">
+                {(form.display_name[0] ?? '?').toUpperCase()}
               </div>
+            )}
+          </button>
+          {editing && (
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="absolute bottom-0.5 right-0.5 w-7 h-7 rounded-full bg-foreground border-2 border-background flex items-center justify-center"
+            >
+              {uploading
+                ? <Loader2 className="w-3 h-3 text-background animate-spin" />
+                : <Camera className="w-3 h-3 text-background" />}
             </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-          </div>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        </div>
 
+        {/* Name */}
+        <div className="mt-3.5">
           {editing ? (
             <input
               value={form.display_name}
               onChange={e => update('display_name', e.target.value)}
-              className="text-center text-xl font-bold bg-transparent border-b-2 border-primary outline-none w-full max-w-[200px]"
+              className="text-center font-display italic text-[26px] leading-tight tracking-[-0.01em] bg-transparent border-b-2 border-primary outline-none w-full max-w-[220px]"
               autoFocus
             />
           ) : (
-            <div className="text-center">
-              <h2 className="font-display italic text-[26px] leading-tight tracking-[-0.01em]">{form.display_name}</h2>
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground mt-0.5">{profile?.email}</p>
-            </div>
+            <h1 className="font-display italic text-[26px] leading-tight tracking-[-0.01em] text-foreground">
+              {form.display_name}
+            </h1>
           )}
-        </motion.div>
+          {eyebrow && (
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1.5">{eyebrow}</p>
+          )}
+        </div>
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 gap-0 bg-card border border-border rounded-lg overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4">
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Trips</span>
-            <span className="font-display italic text-[22px] leading-none">{tripCount}</span>
-          </div>
+      <div className="px-4 space-y-4">
+
+        {/* ── STATS ROW ─────────────────────────────────────── */}
+        <div className="bg-card border border-border rounded-2xl flex overflow-hidden">
+          <StatCol num={stats.trips} label="Trips" />
+          <StatDivider />
+          <StatCol num={stats.countries} label="Countries" />
+          <StatDivider />
+          <StatCol num={stats.daysAway} label="Days away" />
+          <StatDivider />
+          <StatCol num={stats.squad} label="Squad" />
         </div>
 
-        {/* Details */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden divide-y divide-border">
-          {/* Phone */}
-          <div className="px-5 py-4">
-            <div className="flex items-center gap-3">
-              <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-              {editing ? (
-                <input value={form.phone} onChange={e => update('phone', e.target.value)}
-                  placeholder="Phone number" type="tel"
-                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
-              ) : (
-                <span className="text-sm flex-1 text-foreground">{form.phone || <span className="text-muted-foreground">No phone number</span>}</span>
-              )}
+        {/* ── SPENDING ACROSS ALL TRIPS ─────────────────────── */}
+        {stats.totalSpent > 0 && (
+          <div className="bg-card border border-border rounded-2xl px-5 py-4 flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-0.5">Total spent across all trips</p>
+              <p className="font-display italic text-[26px] leading-none tracking-[-0.01em] text-foreground">
+                £{stats.totalSpent.toFixed(0)}
+              </p>
             </div>
-            {editing && <VisibilityBadge value={form.phone_visibility} onChange={v => update('phone_visibility', v)} />}
+            <Coins className="w-5 h-5 text-muted-foreground" />
           </div>
+        )}
 
+        {/* ── TRAVEL STYLE TAGS ─────────────────────────────── */}
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2.5 px-1">Travel style</p>
+          <AnimatePresence mode="wait">
+            {editing ? (
+              <motion.div key="edit-tags" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-wrap gap-2">
+                {ALL_TAGS.map(tag => {
+                  const active = form.travel_tags.includes(tag)
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      className={`text-[12px] font-medium px-3 py-1.5 rounded-full border transition-colors ${active ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'}`}
+                    >
+                      {active ? '● ' : ''}{tag}
+                    </button>
+                  )
+                })}
+              </motion.div>
+            ) : (
+              <motion.div key="view-tags" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-wrap gap-2">
+                {form.travel_tags.length > 0
+                  ? form.travel_tags.map(tag => (
+                    <span key={tag} className="text-[12px] font-medium px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      ● {tag}
+                    </span>
+                  ))
+                  : !editing && (
+                    <p className="text-sm text-muted-foreground px-1">No travel style set yet</p>
+                  )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ── BIO & DETAILS ─────────────────────────────────── */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden divide-y divide-border">
           {/* Bio */}
-          <div className="px-5 py-4">
+          <div className="px-4 py-4">
             <div className="flex items-start gap-3">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
               {editing ? (
-                <textarea value={form.bio} onChange={e => update('bio', e.target.value)}
-                  placeholder="Write a short bio…" rows={2}
-                  className="flex-1 bg-transparent text-sm outline-none resize-none placeholder:text-muted-foreground" />
+                <textarea
+                  value={form.bio}
+                  onChange={e => update('bio', e.target.value)}
+                  placeholder="Write a short bio…"
+                  rows={2}
+                  className="flex-1 bg-transparent text-sm outline-none resize-none placeholder:text-muted-foreground"
+                />
               ) : (
-                <span className="text-sm flex-1 text-foreground">{form.bio || <span className="text-muted-foreground">No bio yet</span>}</span>
+                <span className="text-sm flex-1">{form.bio || <span className="text-muted-foreground">No bio yet</span>}</span>
               )}
             </div>
             {editing && <VisibilityBadge value={form.bio_visibility} onChange={v => update('bio_visibility', v)} />}
           </div>
 
           {/* Home city */}
-          <div className="px-5 py-4">
+          <div className="px-4 py-4">
             <div className="flex items-center gap-3">
               <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
               {editing ? (
-                <input value={form.home_city} onChange={e => update('home_city', e.target.value)}
+                <input
+                  value={form.home_city}
+                  onChange={e => update('home_city', e.target.value)}
                   placeholder="Home city"
-                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
               ) : (
-                <span className="text-sm flex-1 text-foreground">{form.home_city || <span className="text-muted-foreground">No home city</span>}</span>
+                <span className="text-sm flex-1">{form.home_city || <span className="text-muted-foreground">No home city</span>}</span>
               )}
             </div>
             {editing && <VisibilityBadge value={form.home_city_visibility} onChange={v => update('home_city_visibility', v)} />}
           </div>
+
+          {/* Phone */}
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-3">
+              <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+              {editing ? (
+                <input
+                  value={form.phone}
+                  onChange={e => update('phone', e.target.value)}
+                  placeholder="Phone number"
+                  type="tel"
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                />
+              ) : (
+                <span className="text-sm flex-1">{form.phone || <span className="text-muted-foreground">No phone number</span>}</span>
+              )}
+            </div>
+            {editing && <VisibilityBadge value={form.phone_visibility} onChange={v => update('phone_visibility', v)} />}
+          </div>
         </div>
 
         {editing && (
-          <button onClick={() => setEditing(false)}
-            className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+          <button
+            onClick={() => setEditing(false)}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground"
+          >
             <X className="w-4 h-4" /> Cancel
           </button>
         )}
 
-        {/* Sign out */}
+        {/* ── SETTINGS ──────────────────────────────────────── */}
         {!editing && (
-          <button onClick={handleSignOut}
-            className="w-full flex items-center justify-between px-5 py-4 bg-card border border-border rounded-lg text-destructive active:scale-[0.98] transition-transform">
-            <div className="flex items-center gap-3">
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Sign out</span>
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2 px-1">Settings</p>
+            <div className="bg-card border border-border rounded-2xl px-4">
+              <SettingsRow
+                icon={Settings}
+                label="Profile · privacy"
+                sub="What trip members see"
+                onClick={() => setEditing(true)}
+              />
+              <SettingsRow
+                icon={Bell}
+                label="Notifications"
+                sub="Push · email"
+              />
+              <SettingsRow
+                icon={Moon}
+                label="Appearance"
+                sub="Auto · light · dark"
+              />
+              <SettingsRow
+                icon={LogOut}
+                label="Sign out"
+                sub="See you soon"
+                danger
+                onClick={handleSignOut}
+              />
             </div>
-            <ChevronRight className="w-4 h-4 opacity-40" />
-          </button>
+          </div>
         )}
       </div>
     </div>

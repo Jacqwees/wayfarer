@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Crown, Shield, Eye, MoreVertical, UserX, ArrowRightLeft, Link, ToggleLeft, ToggleRight, LogOut } from 'lucide-react'
+import { ChevronLeft, Crown, Shield, Eye, MoreVertical, UserX, ArrowRightLeft, ToggleLeft, ToggleRight, LogOut, UserPlus } from 'lucide-react'
+import NextLink from 'next/link'
 import { removeMember, changeRole, transferOwnership, updateTripPermissions, leaveTrip } from '@/app/actions/members'
 
 type Member = {
@@ -112,19 +113,19 @@ export default function MembersView({ tripId, myRole, members, permissions: init
 
           return (
             <div key={m.id} className="relative flex items-center gap-3 bg-card border border-border rounded-lg px-4 py-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+              <NextLink href={isMe ? '/profile' : `/profile/${m.user_id}`} className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                 {m.users.avatar_url
                   ? <img src={m.users.avatar_url} alt="" className="w-full h-full object-cover" />
                   : <span className="text-sm font-semibold text-primary">{initials}</span>}
-              </div>
+              </NextLink>
 
-              <div className="flex-1 min-w-0">
+              <NextLink href={isMe ? '/profile' : `/profile/${m.user_id}`} className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{m.users.display_name}{isMe ? ' (you)' : ''}</p>
                 <div className={`flex items-center gap-1 text-xs ${roleColor[m.role]}`}>
                   <Icon className="w-3 h-3" />
                   <span>{roleLabel[m.role]}</span>
                 </div>
-              </div>
+              </NextLink>
 
               {isOwner && !isMe && (
                 <button
@@ -196,7 +197,7 @@ export default function MembersView({ tripId, myRole, members, permissions: init
       {canInvite && (
         <button onClick={() => router.push(`/trips/${tripId}/invite`)}
           className="mt-4 w-full h-12 rounded-full border border-primary text-primary font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-          <Link className="w-4 h-4" /> Invite someone
+          <UserPlus className="w-4 h-4" /> Invite someone
         </button>
       )}
 
