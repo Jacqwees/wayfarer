@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { requestOtp, ensureUserSetup } from '@/app/actions/auth'
+import { requestOtp } from '@/app/actions/auth'
 import { Plane } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Suspense } from 'react'
@@ -61,19 +61,9 @@ function LoginForm() {
       return
     }
 
-    // Server-side: create profile if new user, convert invitations
-    const setup = await ensureUserSetup()
-    if (setup.error) {
-      setErrorMsg(setup.error)
-      setStage('error')
-      return
-    }
-
-    if (!setup.onboardingComplete) {
-      router.replace('/onboarding')
-    } else {
-      router.replace('/trips')
-    }
+    // Navigate to the setup route — it runs server-side after a full navigation,
+    // by which point the session is in cookies and ensureUserSetup works correctly.
+    router.replace('/auth/setup')
   }
 
   function handleCodeChange(val: string) {
