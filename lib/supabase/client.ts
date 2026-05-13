@@ -4,6 +4,13 @@ import type { Database } from '@/lib/types/database'
 export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        // OTPs are generated server-side via admin.generateLink — no PKCE
+        // code verifier is created on the client, so we use implicit flow.
+        flowType: 'implicit',
+      },
+    }
   )
 }
