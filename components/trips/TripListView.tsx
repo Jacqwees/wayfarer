@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Plane } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import TripCard from './TripCard'
+import MiniTripCard from './MiniTripCard'
 
 type Trip = {
   id: string
@@ -16,86 +17,143 @@ type Trip = {
   role: string
 }
 
-export default function TripListView({ upcoming, past }: { upcoming: Trip[]; past: Trip[] }) {
+export default function TripListView({
+  upcoming,
+  past,
+}: {
+  upcoming: Trip[]
+  past: Trip[]
+}) {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const hasTrips = upcoming.length > 0 || past.length > 0
-  const shown = tab === 'upcoming' ? upcoming : past
+
+  // ── Tab chip pill ──────────────────────────────────────────────
+  function TabChip({ id, label, count }: { id: 'upcoming' | 'past'; label: string; count: number }) {
+    const active = tab === id
+    return (
+      <button
+        onClick={() => setTab(id)}
+        className={`relative px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors ${
+          active
+            ? 'bg-foreground text-background'
+            : 'border border-border text-muted-foreground'
+        }`}
+      >
+        {label}
+        {count > 0 && (
+          <span className={`ml-1.5 font-mono text-[10px] ${active ? 'opacity-60' : 'opacity-70'}`}>
+            {count}
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  // ── Empty state ────────────────────────────────────────────────
+  if (!hasTrips) {
+    return (
+      <div className="px-5">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pt-12 flex flex-col items-center text-center gap-5"
+        >
+          {/* Perforated circle */}
+          <div className="relative w-20 h-20 flex items-center justify-center">
+            <svg className="absolute inset-0" width="80" height="80" viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="36" fill="none"
+                stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+            </svg>
+            <span className="font-display italic text-primary text-3xl leading-none">✈</span>
+          </div>
+
+          <div>
+            <h2 className="font-display italic text-[26px] leading-tight text-foreground">
+              No trips yet.
+            </h2>
+            <p className="text-muted-foreground text-sm mt-1.5 max-w-[240px]">
+              Create your first trip and invite your crew — it only takes a minute.
+            </p>
+          </div>
+
+          {/* Perforated divider */}
+          <svg height="2" width="200">
+            <line x1="0" y1="1" x2="200" y2="1"
+              stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+          </svg>
+
+          <Link
+            href="/trips/new"
+            className="h-12 px-6 rounded-full bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-2 active:scale-95 transition-transform shadow-md"
+          >
+            <Plus className="w-4 h-4" strokeWidth={2.5} />
+            Plan a trip
+          </Link>
+        </motion.div>
+      </div>
+    )
+  }
 
   return (
     <div className="px-5">
       {/* Tab chips */}
-      {hasTrips && (
-        <div className="flex gap-2 mb-6">
-          {(['upcoming', 'past'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`relative px-4 py-2 rounded-full text-sm font-semibold transition-colors capitalize ${
-                tab === t ? 'bg-foreground text-background' : 'border border-border text-muted-foreground'
-              }`}
-            >
-              {t}
-              {t === 'upcoming' && upcoming.length > 0 && (
-                <span className={`ml-2 font-mono text-[10px] ${tab === t ? 'text-background/60' : 'text-muted-foreground'}`}>
-                  {upcoming.length}
-                </span>
-              )}
-              {t === 'past' && past.length > 0 && (
-                <span className={`ml-2 font-mono text-[10px] ${tab === t ? 'text-background/60' : 'text-muted-foreground'}`}>
-                  {past.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex gap-2 mb-5">
+        <TabChip id="upcoming" label="Upcoming" count={upcoming.length} />
+        <TabChip id="past" label="Past" count={past.length} />
+      </div>
 
       <AnimatePresence mode="wait">
-        {!hasTrips ? (
+        {tab === 'upcoming' ? (
           <motion.div
-            key="empty"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="pt-16 flex flex-col items-center text-center gap-4"
-          >
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Plane className="w-7 h-7 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-lg mb-1">No trips yet</h2>
-              <p className="text-muted-foreground text-sm max-w-xs">
-                Create your first trip and invite your crew. It only takes a minute.
-              </p>
-            </div>
-            <Link
-              href="/trips/new"
-              className="mt-2 px-6 h-12 rounded-full bg-primary text-primary-foreground font-semibold text-sm flex items-center gap-2 active:scale-95 transition-transform"
-            >
-              <Plus className="w-4 h-4" /> Plan a trip
-            </Link>
-          </motion.div>
-        ) : shown.length === 0 ? (
-          <motion.div
-            key="empty-tab"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="py-16 text-center"
-          >
-            <p className="text-muted-foreground text-sm">No {tab} trips</p>
-          </motion.div>
-        ) : (
-          <motion.div
-            key={tab}
+            key="upcoming"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className={`space-y-3 ${tab === 'past' ? 'opacity-80' : ''}`}
           >
-            {shown.map((trip, i) => (
-              <TripCard key={trip.id} trip={trip} index={i} />
-            ))}
+            {upcoming.length === 0 ? (
+              <p className="py-12 text-center text-muted-foreground text-sm">
+                No upcoming trips — time to plan one.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {/* Featured hero card — first upcoming trip */}
+                <TripCard trip={upcoming[0]} index={0} featured />
+
+                {/* Perforated divider between featured + rest */}
+                {upcoming.length > 1 && (
+                  <div className="py-1">
+                    <svg height="2" width="100%">
+                      <line x1="0" y1="1" x2="100%" y2="1"
+                        stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+                    </svg>
+                  </div>
+                )}
+
+                {/* Mini cards for remaining trips */}
+                {upcoming.slice(1).map((trip, i) => (
+                  <MiniTripCard key={trip.id} trip={trip} index={i + 1} />
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="past"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            {past.length === 0 ? (
+              <p className="py-12 text-center text-muted-foreground text-sm">No past trips yet.</p>
+            ) : (
+              <div className="space-y-3 opacity-80">
+                {past.map((trip, i) => (
+                  <MiniTripCard key={trip.id} trip={trip} index={i} />
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

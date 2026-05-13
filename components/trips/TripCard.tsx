@@ -41,7 +41,7 @@ function daysUntil(start: string, end: string) {
   return `In ${Math.floor(days / 30)} mo`
 }
 
-export default function TripCard({ trip, index = 0 }: {
+export default function TripCard({ trip, index = 0, featured = false }: {
   trip: {
     id: string
     name: string
@@ -52,9 +52,11 @@ export default function TripCard({ trip, index = 0 }: {
     role: string
   }
   index?: number
+  featured?: boolean
 }) {
   const countdown = daysUntil(trip.start_date, trip.end_date)
   const bg = trip.cover_photo_url ? undefined : getGradient(trip.destination_name)
+  const cardHeight = featured ? 'h-[250px]' : 'h-[190px]'
 
   return (
     <motion.div
@@ -64,7 +66,7 @@ export default function TripCard({ trip, index = 0 }: {
     >
       <Link href={`/trips/${trip.id}`}>
         <div
-          className="relative h-[190px] rounded-xl overflow-hidden active:scale-[0.98] transition-transform"
+          className={`relative ${cardHeight} rounded-xl overflow-hidden active:scale-[0.98] transition-transform`}
           style={{ background: bg }}
         >
           {trip.cover_photo_url && (

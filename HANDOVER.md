@@ -126,7 +126,7 @@ supabase.channel(`rt-notifications-${userId}`)
 
 ```
 app/
-  (auth)/login/               Magic link login page
+  (auth)/login/               OTP sign-in — landing hero + bottom-sheet form
   (app)/                      Protected shell — layout.tsx renders BottomNav
     trips/                    Trip list (home after login)
     trips/new/                Create trip form
@@ -142,7 +142,8 @@ app/
       settings/               Trip settings (name, dates, cover, danger zone)
   notifications/              Notification inbox
   profile/                    View + edit profile
-  auth/callback/              Magic link handler — creates user row on first sign-in
+  auth/callback/              Legacy magic link handler (kept for fallback)
+  auth/setup/                 Post-OTP server route — ensureUserSetup + redirect to /onboarding or /trips
   onboarding/                 First-run onboarding (once, before /trips)
   actions/
     trips.ts                  createTrip, updateTrip, deleteTrip, getUploadUrl
@@ -248,60 +249,74 @@ create policy "trip members can manage packing items"
 
 ---
 
-## Design System — Coastline
+## Design System — Voyage Press
 
-The app uses the "Coastline" design language (Direction D hybrid). All screens have been updated to use it consistently.
+Editorial travel-journal aesthetic. Source of truth: `theme.jsx` in Downloads (design files).
 
 ### Fonts (loaded in `app/layout.tsx`)
-| Variable | Font | Usage |
-|---|---|---|
-| `--font-sans` | Bricolage Grotesque | Everything — body, labels, buttons |
-| `--font-display` | Instrument Serif italic | Page headings, trip names, big numbers ONLY |
-| `--font-mono` | JetBrains Mono | Eyebrows, timestamps, codes, amounts |
+| CSS Variable | Font | Package | Usage |
+|---|---|---|---|
+| `--font-geist-sans` | Geist | `geist` npm package | Body, labels, buttons |
+| `--font-display` | Newsreader italic | `next/font/google` | Page headings, trip names, big italic text |
+| `--font-geist-mono` | Geist Mono | `geist` npm package | Eyebrows, timestamps, codes, amounts |
 
-**Eyebrow pattern** (section labels above headings):
+**Eyebrow pattern** (use the `.eyebrow` utility class):
 ```tsx
-<p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Label</p>
-<h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Heading</h1>
+<p className="eyebrow">Section label</p>
+<h1 className="font-display italic text-[32px] leading-[0.92] tracking-[-0.01em]">Heading</h1>
+```
+
+**Perforated divider** (signature element — use inline SVG):
+```tsx
+<svg height="2" width="100%">
+  <line x1="0" y1="1" x2="100%" y2="1"
+    stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+</svg>
 ```
 
 ### Colour Tokens (`app/globals.css`)
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--background` | `#F6F1E6` sand | `#15110B` | Page bg |
-| `--card` | `#FFFBF2` | `#1E1912` | Card bg |
-| `--primary` | `#C5532A` terracotta | `#E8794A` | Brand, CTAs |
-| `--accent` | `#E89A5C` peach | `#D4783A` | Secondary accent |
-| `--muted` | `#ECE1CC` | `#2A2318` | Subtle fills |
-| `--border` | `#E0D4BC` | `#3A2E22` | Dividers |
+| `--background` | `#F4EDE0` paper | `#171511` | Page background |
+| `--card` | `#FCF8EE` warm white | `#22201A` | Card background |
+| `--primary` | `#E0533A` coral | `#F26B52` | Brand, CTAs |
+| `--secondary` | `#EBE2D1` paperAlt | `#2A2720` | Subtle fills |
+| `--muted-foreground` | `#928873` inkMute | `#B8AC97` | Secondary text |
+| `--border` | `#D9CFB9` line | `#3A352C` | Dividers |
 
-### Radii (`tailwind.config.ts`)
+**Named accent colors** (in `tailwind.config.ts`):
+- `text-sage` / `bg-sage` → `#5B7556` — nature, outdoors
+- `text-amber` / `bg-amber` → `#D9923B` — food, warmth
+- `text-sky` / `bg-sky` → `#6FA4C2` — flights, sea
+- `text-pink` / `bg-pink` → `#E89AAE` — social, fun
+
+### Radii
 | Class | Value | Use |
 |---|---|---|
 | `rounded-sm` | 4px | Tags, tiny badges |
 | `rounded` / `rounded-md` | 8px | Default |
 | `rounded-lg` | 14px | **Cards, panels** |
-| `rounded-xl` | 20px | Form inputs |
-| `rounded-2xl` | 20px | (same — legacy alias) |
-| `rounded-3xl` | 28px | Bottom sheets |
-| `rounded-full` | 9999px | **Pill buttons, nav, avatars** |
+| `rounded-xl` | 22px | Form inputs, large cards |
+| `rounded-[28px]` | 28px | Bottom sheets (`rounded-t-[28px]`) |
+| `rounded-full` | 9999px | Pill buttons, nav, avatars |
 
 ### Component patterns
-- **CTA buttons:** `rounded-full bg-primary text-primary-foreground h-12 px-6 font-semibold`
-- **Secondary buttons:** `rounded-full border border-primary text-primary`
-- **Cards:** `bg-card border border-border rounded-lg`
-- **Bottom sheets:** `bg-background w-full rounded-t-3xl` (via Framer Motion spring)
-- **Active BottomNav pill:** `motion.div layoutId="nav-pill"` spring animation
-- **Staggered entrance:** `delay: index * 0.04` on card grids
+- **Primary CTA:** `rounded-full bg-primary text-primary-foreground h-12 px-6 font-semibold active:scale-[0.98]`
+- **Ghost outline:** `rounded-full border border-border text-foreground`
+- **Cards:** `bg-card border border-border rounded-xl`
+- **Bottom sheets:** spring animate with `type: 'spring', damping: 30, stiffness: 280`, `rounded-t-[28px]`
+- **Staggered entrance:** `delay: index * 0.06` on card grids
 
 ---
 
 ## What's Built (Complete)
 
 - [x] **PWA shell** — manifest, icons, service worker, installable on iOS + Android
-- [x] **Auth** — magic link login, callback handler, auto-creates `users` + `privacy_settings` on first sign-in
+- [x] **Auth** — OTP sign-in (no magic links): `admin.generateLink` server-side, Resend email, `verifyOtp` (implicit flow) client-side, `/auth/setup` handles first-login profile creation
+- [x] **Invitation flow** — email links to `/login?email=...`, pre-fills email + skips landing, invitation → notification on first sign-in
 - [x] **Onboarding** — 4-step animated flow (name/avatar → details → notifications → ready), runs once
-- [x] **Trips list** — upcoming/past tabs, gradient placeholders, countdown badges, TripCard with entrance animations
+- [x] **Login page** — full-bleed gradient hero with product story, spring bottom-sheet form, OTP code entry
+- [x] **Trips list** — featured hero card (first upcoming trip) + mini compact cards (remaining), personalized "X trips, Y nights" header, perforated divider
 - [x] **Create trip** — Google Places city autocomplete, cover photo upload, date range picker
 - [x] **Trip dashboard** — hero with gradient/photo, member avatar strip, balance widget, feature card grid
 - [x] **Trip settings** — edit name/destination/dates/cover, delete trip (owner only)
@@ -312,11 +327,11 @@ The app uses the "Coastline" design language (Direction D hybrid). All screens h
 - [x] **Expenses** — add expense (any currency → Frankfurter FX → GBP), equal/custom splits, settle up (minimised transfers), dispute flow, nudge payer
 - [x] **Packing list** — shared checklist, assign to member, progress bar, filter pills, optimistic updates
 - [x] **Members** — list with roles (Owner/Member/Viewer), remove, change role, transfer ownership, permissions toggles (owner only), leave trip (non-owner)
-- [x] **Invite** — send invite by email + role, pending list with resend/cancel, optimistic local update
-- [x] **Notifications inbox** — all notification types, mark read, realtime subscription via Supabase, tap-to-navigate, invite accept/decline sheet
+- [x] **Notifications inbox** — all notification types, mark read, realtime subscription, tap-to-navigate, invite accept/decline sheet
 - [x] **Profile** — view/edit name, phone, bio, home city, avatar upload, visibility toggles, sign out
 - [x] **Balance widget** — on trip dashboard, shows net owed/owing, links to expenses
-- [x] **Coastline design system** — full rollout across every screen
+- [x] **Voyage Press design system** — Geist + Newsreader + Geist Mono, coral primary, parchment backgrounds, perforated dividers
+- [x] **Loading screens** — `loading.tsx` on trips, trip dashboard, notifications, profile, all sub-pages
 
 ---
 
@@ -324,17 +339,16 @@ The app uses the "Coastline" design language (Direction D hybrid). All screens h
 
 These are ordered by priority / dependency:
 
-### 1. Magic link deep-linking (DONE — bridge page + custom email)
-- [x] Custom Resend email sent via `app/actions/auth.ts` using `supabase.auth.admin.generateLink`
-- [x] `/auth/open` bridge page — detects webview, auto-redirects in normal browser, shows "Open in Safari/Chrome" instructions in Gmail webview
-- [x] Login page calls `requestMagicLink` server action instead of `signInWithOtp`
-- Known limitation: on iOS Gmail the user must tap "Open in Safari" manually — no workaround without a native app / Universal Links entitlement
+### 1. Screen redesigns (in progress — login ✅, trips list ✅)
+- [x] Login page — full-bleed gradient hero with product story + bottom-sheet OTP form
+- [x] Trips list — featured hero card + mini cards + perforated divider
+- [ ] Trip dashboard — countdown ticker, tile grid polish
+- [ ] Flights — boarding pass card with corner notches
+- [ ] Itinerary — day picker strip + timeline dot connectors
+- [ ] Expenses — hero balance card with perforated divider
+- [ ] Profile — stats row + travel style tags
 
-### 2. Loading screens (DONE)
-- [x] `loading.tsx` added to: trips list, trip dashboard, notifications, profile, and all trip sub-pages (expenses, itinerary, flights, hotel, places, members, invite, packing, settings)
-- Button-level loading states (spinner on tap): individual forms handle this — login already has it; other forms use React state `loading` flags per component
-
-### 3. Push Notifications (infrastructure mostly done)
+### 2. Push Notifications (infrastructure mostly done)
 - `app/actions/push.ts` and `public/sw.js` exist with push handler
 - Still needed:
   - Add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` to Vercel dashboard
