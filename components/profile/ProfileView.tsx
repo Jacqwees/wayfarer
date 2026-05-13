@@ -48,11 +48,16 @@ export default function ProfileView({ profile, privacy, tripCount }: { profile: 
     if (!file) return
     setUploading(true)
     try {
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop() ?? 'jpg'
       const path = `avatars/${profile.id}.${ext}`
-      const signed = await getUploadUrl('avatars', path)
-      if (!signed) throw new Error('Upload error')
-      await fetch(signed.signedUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+      const result = await getUploadUrl('avatars', path)
+      if (result.error || !result.data) throw new Error(result.error ?? 'Upload error')
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .uploadToSignedUrl(result.data.path, result.data.token, file, { contentType: file.type })
+      if (uploadError) throw new Error(uploadError.message)
       const url = `https://fkybsfpdhvjitivsylnj.supabase.co/storage/v1/object/public/avatars/${path}?t=${Date.now()}`
       setAvatar(url)
       await updateAvatar(url)
