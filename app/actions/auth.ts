@@ -25,7 +25,7 @@ export async function requestOtp(email: string) {
     await resend.emails.send({
       from: fromEmail,
       to: email,
-      subject: `${code} is your SquadStay code`,
+      subject: `Your SquadStay sign-in code`,
       html: `
         <!DOCTYPE html>
         <html>

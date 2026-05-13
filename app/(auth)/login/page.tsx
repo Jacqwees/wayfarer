@@ -44,7 +44,7 @@ function LoginForm() {
 
   async function handleCodeSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (code.length !== 6 || stage === 'verifying') return
+    if (code.length < 4 || stage === 'verifying') return
     setStage('verifying')
     setErrorMsg('')
 
@@ -52,7 +52,7 @@ function LoginForm() {
     const { error } = await supabase.auth.verifyOtp({
       email: email.trim().toLowerCase(),
       token: code.trim(),
-      type: 'email',
+      type: 'magiclink',
     })
 
     if (error) {
@@ -77,7 +77,7 @@ function LoginForm() {
   }
 
   function handleCodeChange(val: string) {
-    const digits = val.replace(/\D/g, '').slice(0, 6)
+    const digits = val.replace(/\D/g, '').slice(0, 8)
     setCode(digits)
   }
 
@@ -141,7 +141,7 @@ function LoginForm() {
               </button>
 
               <p className="text-center text-xs text-muted-foreground pt-1">
-                We&apos;ll email you a 6-digit code — no password needed.
+                We&apos;ll email you a sign-in code — no password needed.
               </p>
             </motion.form>
           )}
@@ -158,7 +158,7 @@ function LoginForm() {
             >
               <div className="text-center mb-2">
                 <p className="text-sm text-muted-foreground">
-                  We sent a 6-digit code to{' '}
+                  We sent a sign-in code to{' '}
                   <span className="font-medium text-foreground">{email}</span>
                 </p>
               </div>
@@ -175,8 +175,8 @@ function LoginForm() {
                   autoComplete="one-time-code"
                   value={code}
                   onChange={(e) => handleCodeChange(e.target.value)}
-                  placeholder="000000"
-                  maxLength={6}
+                  placeholder="00000000"
+                  maxLength={8}
                   className="w-full h-14 px-4 rounded-xl border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-2xl font-mono tracking-[0.3em] text-center"
                 />
               </div>
@@ -189,7 +189,7 @@ function LoginForm() {
 
               <button
                 type="submit"
-                disabled={code.length !== 6 || stage === 'verifying'}
+                disabled={code.length < 4 || stage === 'verifying'}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-base shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
               >
                 {stage === 'verifying' ? 'Signing in…' : 'Sign in'}

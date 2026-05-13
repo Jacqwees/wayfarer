@@ -20,6 +20,10 @@ const config: Config = {
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },
       colors: {
+        sage: '#5B7556',
+        amber: '#D9923B',
+        sky: '#6FA4C2',
+        pink: '#E89AAE',
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -59,9 +63,9 @@ const config: Config = {
         DEFAULT: '8px',
         md: '8px',
         lg: '14px',
-        xl: '20px',
-        '2xl': '20px',
-        '3xl': '28px',
+        xl: '22px',
+        '2xl': '22px',
+        '3xl': '32px',
         full: '9999px',
       },
       maxWidth: {

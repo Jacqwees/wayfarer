@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from 'next'
-import { Bricolage_Grotesque, Instrument_Serif, JetBrains_Mono } from 'next/font/google'
+import { Newsreader, Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 
-const sans = Bricolage_Grotesque({
+const sans = Geist({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
 })
-const display = Instrument_Serif({
+const display = Newsreader({
   subsets: ['latin'],
-  weight: '400',
-  style: 'italic',
+  weight: ['400', '500'],
+  style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
 })
-const mono = JetBrains_Mono({
+const mono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#C5532A',
+  themeColor: '#E0533A',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

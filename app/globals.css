@@ -4,67 +4,67 @@
 
 @layer base {
   :root {
-    /* Coastline — Direction D */
-    --background: 38 55% 94%;      /* #F6F1E6 sand */
-    --foreground: 25 26% 9%;       /* #1F1812 */
+    /* Voyage Press — light */
+    --background: 39 48% 92%;      /* #F4EDE0 paper */
+    --foreground: 40 6% 10%;       /* #1B1A18 ink */
 
-    --card: 42 100% 97%;           /* #FFFBF2 */
-    --card-foreground: 25 26% 9%;
+    --card: 44 70% 96%;            /* #FCF8EE card */
+    --card-foreground: 40 6% 10%;
 
-    --popover: 42 100% 97%;
-    --popover-foreground: 25 26% 9%;
+    --popover: 44 70% 96%;
+    --popover-foreground: 40 6% 10%;
 
-    --primary: 16 64% 47%;         /* #C5532A terracotta */
-    --primary-foreground: 42 100% 97%;
+    --primary: 9 73% 55%;          /* #E0533A coral signal */
+    --primary-foreground: 44 70% 96%;
 
-    --secondary: 38 34% 86%;       /* #ECE1CC */
-    --secondary-foreground: 25 26% 9%;
+    --secondary: 39 39% 87%;       /* #EBE2D1 paperAlt */
+    --secondary-foreground: 40 6% 10%;
 
-    --muted: 38 34% 86%;           /* #ECE1CC */
-    --muted-foreground: 25 17% 30%; /* #5A4F40 */
+    --muted: 39 39% 87%;
+    --muted-foreground: 40 13% 51%; /* #928873 inkMute */
 
-    --accent: 27 70% 63%;          /* #E89A5C peach */
-    --accent-foreground: 25 26% 9%;
+    --accent: 33 11% 33%;          /* #5C544A inkSoft */
+    --accent-foreground: 44 70% 96%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 42 100% 97%;
+    --destructive-foreground: 44 70% 96%;
 
-    --border: 38 36% 80%;          /* #E0D4BC */
-    --input: 38 36% 80%;
-    --ring: 16 64% 47%;
+    --border: 41 30% 79%;          /* #D9CFB9 line */
+    --input: 41 30% 79%;
+    --ring: 9 73% 55%;
 
-    /* Coastline radii: sm=4 md=8 lg=14 xl=20 */
+    /* Voyage Press radii */
     --radius: 0.875rem;            /* 14px — lg */
   }
 
   .dark {
-    --background: 30 27% 6%;       /* #15110B */
-    --foreground: 38 57% 91%;      /* #F4ECDD */
+    --background: 39 15% 8%;       /* #171511 paper */
+    --foreground: 39 48% 89%;      /* #F1E8D7 ink */
 
-    --card: 28 24% 9%;             /* #1E1812 */
-    --card-foreground: 38 57% 91%;
+    --card: 44 13% 12%;            /* #22201A card */
+    --card-foreground: 39 48% 89%;
 
-    --popover: 28 24% 9%;
-    --popover-foreground: 38 57% 91%;
+    --popover: 44 13% 12%;
+    --popover-foreground: 39 48% 89%;
 
-    --primary: 17 75% 60%;         /* #E8794A */
-    --primary-foreground: 30 27% 6%;
+    --primary: 9 86% 64%;          /* #F26B52 coral signal */
+    --primary-foreground: 39 15% 8%;
 
-    --secondary: 30 22% 13%;       /* #2A2218 */
-    --secondary-foreground: 38 57% 91%;
+    --secondary: 42 14% 15%;       /* #2A2720 cardAlt */
+    --secondary-foreground: 39 48% 89%;
 
-    --muted: 30 22% 13%;
-    --muted-foreground: 38 24% 68%; /* #BFAF99 */
+    --muted: 42 14% 15%;
+    --muted-foreground: 38 19% 66%; /* #B8AC97 inkSoft */
 
-    --accent: 30 85% 71%;          /* #F5B57B */
-    --accent-foreground: 30 27% 6%;
+    --accent: 40 12% 43%;          /* #7A715F inkMute */
+    --accent-foreground: 39 48% 89%;
 
     --destructive: 0 62% 50%;
-    --destructive-foreground: 38 57% 91%;
+    --destructive-foreground: 39 48% 89%;
 
-    --border: 30 42% 15%;          /* #332919 */
-    --input: 30 42% 15%;
-    --ring: 17 75% 60%;
+    --border: 39 14% 20%;          /* #3A352C line */
+    --input: 39 14% 20%;
+    --ring: 9 86% 64%;
   }
 
   * {
@@ -81,11 +81,9 @@
   .text-balance {
     text-wrap: balance;
   }
-  /* Coastline mono eyebrow utility */
   .eyebrow {
-    @apply font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground;
+    @apply font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground;
   }
-  /* Hide scrollbar */
   .scrollbar-none {
     scrollbar-width: none;
     -ms-overflow-style: none;
