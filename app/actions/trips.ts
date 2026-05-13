@@ -84,8 +84,9 @@ export async function createTrip(formData: {
 export async function getUploadUrl(bucket: string, path: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  if (!user) return { error: 'Not authenticated' as string, data: null }
   const db = createServiceClient()
-  const { data } = await db.storage.from(bucket).createSignedUploadUrl(path)
-  return data
+  const { data, error } = await db.storage.from(bucket).createSignedUploadUrl(path)
+  if (error || !data) return { error: error?.message ?? 'Could not create upload URL', data: null }
+  return { error: null, data }
 }

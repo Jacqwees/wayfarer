@@ -66,16 +66,24 @@ export default function NewTripForm() {
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
+    setError('')
     try {
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop() ?? 'jpg'
       const path = `trip-covers/${Date.now()}.${ext}`
-      const signed = await getUploadUrl('covers', path)
-      if (!signed) throw new Error('Could not get upload URL')
-      const res = await fetch(signed.signedUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-      if (!res.ok) throw new Error('Upload failed')
+      const result = await getUploadUrl('covers', path)
+      if (result.error || !result.data) throw new Error(result.error ?? 'Could not get upload URL')
+
+      // Use Supabase client uploadToSignedUrl — more reliable than raw fetch on mobile
+      const { createClient } = await import('@/lib/supabase/client')
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .uploadToSignedUrl(result.data.path, result.data.token, file, { contentType: file.type })
+      if (uploadError) throw new Error(uploadError.message)
+
       setCoverUrl(`https://fkybsfpdhvjitivsylnj.supabase.co/storage/v1/object/public/covers/${path}`)
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message ?? 'Photo upload failed — please try again')
     }
     setUploading(false)
   }

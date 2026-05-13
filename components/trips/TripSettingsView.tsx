@@ -58,14 +58,24 @@ export default function TripSettingsView({ trip, isOwner }: { trip: Trip; isOwne
     const file = e.target.files?.[0]
     if (!file) return
     setUploading(true)
+    setError('')
     try {
-      const upload = await getUploadUrl('trip-covers', `${trip.id}/${Date.now()}`)
-      if (!upload) return
-      await fetch(upload.signedUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `trip-covers/${trip.id}/${Date.now()}.${ext}`
+      const result = await getUploadUrl('covers', path)
+      if (result.error || !result.data) throw new Error(result.error ?? 'Could not get upload URL')
+
       const { createClient } = await import('@/lib/supabase/client')
-      const db = createClient()
-      const { data } = db.storage.from('trip-covers').getPublicUrl(upload.path)
-      setForm(f => ({ ...f, cover_photo_url: data.publicUrl }))
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .uploadToSignedUrl(result.data.path, result.data.token, file, { contentType: file.type })
+      if (uploadError) throw new Error(uploadError.message)
+
+      const publicUrl = `https://fkybsfpdhvjitivsylnj.supabase.co/storage/v1/object/public/covers/${path}`
+      setForm(f => ({ ...f, cover_photo_url: publicUrl }))
+    } catch (err: any) {
+      setError(err.message ?? 'Photo upload failed — please try again')
     } finally {
       setUploading(false)
     }
