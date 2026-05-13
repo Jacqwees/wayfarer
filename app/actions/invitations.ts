@@ -28,10 +28,12 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
   const { data: existing } = await db.from('invitations').select('id, status').eq('trip_id', tripId).eq('invited_email', email.toLowerCase()).eq('status', 'pending').maybeSingle()
   if (existing) return { error: 'An invitation is already pending for this email' }
 
+  let existingUserId: string | null = null
   const { data: alreadyMember } = await db.from('users').select('id').eq('email', email.toLowerCase()).maybeSingle()
   if (alreadyMember) {
     const { data: isMember } = await db.from('trip_members').select('id').eq('trip_id', tripId).eq('user_id', alreadyMember.id).maybeSingle()
     if (isMember) return { error: 'This person is already on the trip' }
+    existingUserId = alreadyMember.id
   }
 
   const { data: trip } = await db.from('trips').select('name, destination_name, start_date, end_date').eq('id', tripId).single()
@@ -48,8 +50,25 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
 
   if (invErr || !invitation) return { error: invErr?.message ?? 'Failed to create invitation' }
 
+  // If the invited person already has an account, notify them directly in-app
+  if (existingUserId) {
+    await db.from('notifications').insert({
+      user_id: existingUserId,
+      type: 'trip_invitation',
+      trip_id: tripId,
+      reference_id: invitation.id,
+      message: `${inviter?.display_name ?? 'Someone'} invited you to join ${trip?.name}`,
+    })
+    sendPushToUser(existingUserId, {
+      title: 'Trip invitation! ✈️',
+      body: `${inviter?.display_name ?? 'Someone'} invited you to join ${trip?.name ?? 'a trip'}`,
+      url: '/notifications',
+      tag: 'invitation',
+    }).catch(() => {})
+  }
+
   // Send email via Resend
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wayfarer-plum.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://squadstay.co.uk'
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'SquadStay <onboarding@resend.dev>'
   const loginUrl = `${appUrl}/login?email=${encodeURIComponent(email.toLowerCase())}`
 
@@ -158,7 +177,7 @@ export async function resendInvitationEmail(tripId: string, invitationId: string
   const { data: trip } = await db.from('trips').select('name, destination_name, start_date, end_date').eq('id', tripId).single()
   const { data: inviter } = await db.from('users').select('display_name').eq('id', user.id).single()
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wayfarer-plum.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://squadstay.co.uk'
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'SquadStay <onboarding@resend.dev>'
   const loginUrl = `${appUrl}/login?email=${encodeURIComponent(inv.invited_email)}`
   try {

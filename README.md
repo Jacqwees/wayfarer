@@ -4,7 +4,7 @@
 
 Plan trips with your crew — shared itinerary, flight & hotel tracking, expense splitting, and a shared packing list. Everyone on the same page, no WhatsApp chaos.
 
-**Live:** https://wayfarer-plum.vercel.app  
+**Live:** https://squadstay.co.uk  
 **Repo:** https://github.com/Jacqwees/wayfarer  
 **Supabase:** https://supabase.com/dashboard/project/fkybsfpdhvjitivsylnj
 

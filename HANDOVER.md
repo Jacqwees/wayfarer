@@ -2,7 +2,7 @@
 
 > Group holiday planning PWA. This file is the authoritative handover: what's built, how it works, what's left, and how to continue.
 
-**Live:** https://wayfarer-plum.vercel.app (update once custom domain is set)  
+**Live:** https://squadstay.co.uk  
 **Repo:** https://github.com/Jacqwees/wayfarer  
 **Supabase:** https://supabase.com/dashboard/project/fkybsfpdhvjitivsylnj  
 **Vercel:** https://vercel.com (auto-deploys on push to `main`)
@@ -46,8 +46,9 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSy...
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL=SquadStay <noreply@yourdomain.com>   (set once domain verified in Resend)
 NEXT_PUBLIC_APP_URL=https://yourdomain.com             (set once custom domain live)
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=...   (push — not yet added to Vercel)
-VAPID_PRIVATE_KEY=...              (push — not yet added to Vercel)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=...   (push — generate with: npx web-push generate-vapid-keys)
+VAPID_PRIVATE_KEY=...              (push — same command)
+VAPID_SUBJECT=mailto:hello@squadstay.co.uk
 ```
 
 > **Action needed:** Add the two VAPID keys to the Vercel dashboard. Generate them with `npx web-push generate-vapid-keys`.
@@ -219,10 +220,11 @@ lib/
 | `notifications` | Inbox items per user |
 | `packing_items` | Shared checklist per trip |
 
-> **Action needed:** The `packing_items` table must be created manually in Supabase. Run this SQL in the dashboard (SQL Editor):
+> **Action needed:** Two tables must be created manually in Supabase. Run both SQL blocks below in the dashboard (SQL Editor → New Query):
 
+**Table 1 — packing_items** (shared trip checklist):
 ```sql
-create table packing_items (
+create table if not exists packing_items (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid references trips(id) on delete cascade not null,
   label text not null,
@@ -238,6 +240,23 @@ create policy "trip members can manage packing items"
   using (is_trip_member(trip_id, auth.uid()));
 ```
 
+**Table 2 — push_subscriptions** (web push tokens per user device):
+```sql
+create table if not exists push_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade not null,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  created_at timestamptz not null default now(),
+  unique(user_id, endpoint)
+);
+alter table push_subscriptions enable row level security;
+create policy "users can manage own push subscriptions"
+  on push_subscriptions for all
+  using (auth.uid() = user_id);
+```
+
 **RLS helper functions** (security definer — bypass RLS safely):
 - `is_trip_member(trip_id, user_id)` → bool
 - `is_trip_owner(trip_id, user_id)` → bool
@@ -245,7 +264,7 @@ create policy "trip members can manage packing items"
 
 **Storage buckets:** `avatars` (public), `covers` (public)
 
-**Auth config:** Site URL = `https://wayfarer-plum.vercel.app`, redirect URL = `https://wayfarer-plum.vercel.app/auth/callback`
+**Auth config:** Site URL = `https://squadstay.co.uk`, redirect URL = `https://squadstay.co.uk/auth/callback`
 
 ---
 
@@ -342,58 +361,65 @@ These are ordered by priority / dependency:
 ### 1. Screen redesigns (in progress — login ✅, trips list ✅)
 - [x] Login page — full-bleed gradient hero with product story + bottom-sheet OTP form
 - [x] Trips list — featured hero card + mini cards + perforated divider
-- [ ] Trip dashboard — countdown ticker, tile grid polish
+- [x] Trip dashboard — full-bleed hero, live countdown ticker, DashTile grid, members in hero
 - [ ] Flights — boarding pass card with corner notches
 - [ ] Itinerary — day picker strip + timeline dot connectors
 - [ ] Expenses — hero balance card with perforated divider
 - [ ] Profile — stats row + travel style tags
 
-### 2. Push Notifications (infrastructure mostly done)
-- `app/actions/push.ts` and `public/sw.js` exist with push handler
-- Still needed:
-  - Add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` to Vercel dashboard
-  - Wire `sendPushNotification()` into the expense/invite/payment server actions so users actually receive pushes
-  - Test on iOS (requires HTTPS + Safari 16.4+)
+### 2. Push Notifications
+- Infrastructure is complete: `app/actions/push.ts`, `worker/index.js`, `StepNotifications.tsx`
+- `sendPushToUser()` is already wired into: addExpense, recordPayment, confirmPayment, nudgePayer, sendInvitation, respondToInvitation
+- **Still needed — do once:**
+  1. Run the `push_subscriptions` SQL (see Database section below)
+  2. Generate VAPID keys: `npx web-push generate-vapid-keys`
+  3. Add to Vercel dashboard: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT=mailto:hello@squadstay.co.uk`
+  4. Redeploy (push to main)
+  - Note: iOS requires HTTPS + Safari 16.4+ — works on squadstay.co.uk ✅
 
 ### 2. Offline Support
 - Service worker is registered but offline queue is not implemented
 - Plan: use Dexie.js (IndexedDB) to queue expense adds when offline, sync on reconnect, show "pending sync" badge on queued items
 - Files to touch: `public/sw.js`, new `lib/offline-queue.ts`, `components/trips/ExpensesView.tsx`
 
-### 3. Email Deliverability (currently broken — fix required)
-**Root cause:** Both email flows use `onboarding@resend.dev` as the sender. Resend's sandbox domain only delivers to the email address you registered your Resend account with — all other recipients are silently dropped.
+### 3. Email Deliverability — action required
+**Root cause:** Resend's sandbox (`onboarding@resend.dev`) only delivers to the email you registered with. All other recipients are silently dropped.
 
-**Fix (two steps):**
+**Fix — do once:**
 
-**Step 1 — Verify a domain in Resend:**
-- Go to `app.resend.com` → Domains → Add Domain
-- Add your domain (e.g. `squadstay.com` or a subdomain like `mail.yourdomain.com`)
-- Add the DNS records Resend gives you (takes ~10 min to verify)
+**Step 1 — Verify squadstay.co.uk in Resend:**
+- Go to `app.resend.com` → Domains → Add Domain → enter `squadstay.co.uk`
+- Add the DNS records Resend gives you (SPF, DKIM — takes ~10 min to verify)
 
-**Step 2 — Set env vars in Vercel dashboard:**
+**Step 2 — Set these in Vercel dashboard → Settings → Environment Variables:**
 ```
-RESEND_FROM_EMAIL=SquadStay <noreply@yourdomain.com>
-NEXT_PUBLIC_APP_URL=https://yourdomain.com
+RESEND_FROM_EMAIL=SquadStay <noreply@squadstay.co.uk>
+NEXT_PUBLIC_APP_URL=https://squadstay.co.uk
 ```
-The invitation code already reads these — no further code change needed.
+No code changes needed — the actions already read these.
 
-**Step 3 — Fix magic link emails (Supabase Auth):**
+**Step 3 — Update Supabase Auth SMTP sender:**
 - Supabase dashboard → Authentication → Settings → SMTP Settings
-- Make sure "Sender email" matches a verified Resend domain address (same domain as above)
-- The SMTP host/port/credentials should already be Resend's — just update the From address
+- Change "Sender email" to `noreply@squadstay.co.uk`
+- The host/port/API key credentials should already be Resend's
+
+**Step 4 — Update Supabase Auth URLs:**
+- Supabase dashboard → Authentication → URL Configuration
+- Site URL: `https://squadstay.co.uk`
+- Redirect URLs: add `https://squadstay.co.uk/auth/callback`
 
 ### 4. Domain
-- Site is live at `wayfarer-plum.vercel.app` (Vercel default)
-- To use a custom domain: buy it (Cloudflare Registrar is cheapest), add it in Vercel dashboard under the project → Domains, point DNS records as shown
-- Supabase auth Site URL and redirect URL will also need updating
+- Live at `https://squadstay.co.uk` ✅
+- Vercel domain already configured (or set via Vercel dashboard → project → Domains)
 
 ### 5. Share-Link Invites
 - Currently invite-only by email (known contact)
 - Add a `/trips/[tripId]/join/[token]` route: generate a short-lived token, anyone with the link can join as Member or Viewer
 
-### 6. Packing Table Migration
-- Run the SQL in the **Database** section above if not already done
-- The code (`PackingView`, `app/actions/packing.ts`, `/packing` page) is complete — it just needs the table to exist
+### 6. Database Tables
+- Run **both** SQL blocks in the **Database** section above if not already done:
+  - `packing_items` — powers the shared packing checklist (code is complete)
+  - `push_subscriptions` — stores push tokens (code is complete)
 
 ### 7. Minor Polish
 - `TripSettingsView` cover photo upload uses a flat gradient fallback — could match the radial gradient system from TripCard

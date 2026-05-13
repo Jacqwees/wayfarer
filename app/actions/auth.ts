@@ -108,6 +108,37 @@ export async function ensureUserSetup() {
     return { isNewUser: true, onboardingComplete: false, error: null as null }
   }
 
+  // For returning users: convert any pending invitations that don't yet have a notification
+  const { data: pendingInvites } = await db
+    .from('invitations')
+    .select('id, trip_id')
+    .eq('invited_email', user.email!.toLowerCase())
+    .eq('status', 'pending')
+
+  if (pendingInvites?.length) {
+    const { data: existingNotifs } = await db
+      .from('notifications')
+      .select('reference_id')
+      .eq('user_id', user.id)
+      .eq('type', 'trip_invitation')
+      .in('reference_id', pendingInvites.map(i => i.id))
+
+    const notifiedIds = new Set((existingNotifs ?? []).map(n => n.reference_id))
+    const unnotified = pendingInvites.filter(i => !notifiedIds.has(i.id))
+
+    if (unnotified.length) {
+      await db.from('notifications').insert(
+        unnotified.map(inv => ({
+          user_id: user.id,
+          type: 'trip_invitation',
+          trip_id: inv.trip_id,
+          reference_id: inv.id,
+          message: 'You have a pending invitation to join a trip',
+        }))
+      )
+    }
+  }
+
   return {
     isNewUser: false,
     onboardingComplete: existingUser.onboarding_complete as boolean,
