@@ -3,11 +3,10 @@
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Plus, X, Loader2, Receipt, ArrowRightLeft, AlertCircle, Bell } from 'lucide-react'
+import { Plus, X, Loader2, Bell, WifiOff, RefreshCw } from 'lucide-react'
 import { addExpense, recordPayment, confirmPayment, disputeSplit, nudgePayer } from '@/app/actions/expenses'
 import { createClient } from '@/lib/supabase/client'
 import { useOfflineExpenses } from '@/hooks/useOfflineExpenses'
-import { WifiOff, RefreshCw } from 'lucide-react'
 
 type Member = { user_id: string; display_name: string; avatar_url: string | null }
 type Expense = {
@@ -48,11 +47,14 @@ function minimiseTransfers(balances: Record<string, number>): Transfer[] {
   return transfers
 }
 
+function initials(name: string) {
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'
+}
+
 export default function ExpensesView({ tripId, currentUserId, members, expenses, payments }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [tab, setTab] = useState<'expenses' | 'settle'>('expenses')
-
   const { isOnline, pendingExpenses, syncing, queueExpense, syncPending } = useOfflineExpenses(tripId)
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [tripId, router])
+
   const [showAdd, setShowAdd] = useState(false)
   const [nudgedIds, setNudgedIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
@@ -87,12 +90,8 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
     if (!amt || amt <= 0) { setError('Enter a valid amount'); return }
     setError('')
     const expenseData = {
-      description: form.description,
-      amount: amt,
-      currency: form.currency,
-      paid_by: form.paid_by,
-      category: form.category,
-      split_type: form.split_type,
+      description: form.description, amount: amt, currency: form.currency,
+      paid_by: form.paid_by, category: form.category, split_type: form.split_type,
       split_with: form.split_type === 'equal_select' ? form.split_with : undefined,
       custom_splits: form.split_type === 'custom'
         ? form.custom_splits.filter(s => parseFloat(s.amount) > 0).map(s => ({ user_id: s.user_id, amount: parseFloat(s.amount) }))
@@ -112,7 +111,7 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
     })
   }
 
-  // Calculate balances for settle-up
+  // Balances
   const balances: Record<string, number> = {}
   members.forEach(m => { balances[m.user_id] = 0 })
   for (const exp of expenses) {
@@ -123,15 +122,15 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
       }
     }
   }
-  // Factor in confirmed payments
   for (const p of payments.filter(p => p.status === 'confirmed')) {
     balances[p.from_user_id] = (balances[p.from_user_id] ?? 0) + p.amount
     balances[p.to_user_id] = (balances[p.to_user_id] ?? 0) - p.amount
   }
   const transfers = minimiseTransfers(balances)
   const pendingPayments = payments.filter(p => p.status === 'pending')
-
   const totalGbp = expenses.reduce((sum, e) => sum + e.amount_gbp, 0)
+  const myBalance = balances[currentUserId] ?? 0
+  const perHead = members.length > 0 ? totalGbp / members.length : 0
 
   function handleNudge(toId: string) {
     setNudgedIds(s => { const next = new Set(Array.from(s)); next.add(toId); return next })
@@ -151,46 +150,99 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
     })
   }
 
+  // Best settle suggestion (first transfer)
+  const topTransfer = transfers[0]
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-      className="min-h-screen bg-background px-5 pt-14 pb-32 max-w-mobile mx-auto"
+      className="min-h-screen bg-background pb-32"
     >
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground mb-6 -ml-1">
-        <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
-      </button>
+      {/* Hero balance card */}
+      <div className="px-4 pt-14 pb-0">
+        <div className="bg-card border border-border rounded-xl px-5 py-4 relative overflow-hidden">
+          <div className="flex items-start justify-between mb-1">
+            <p className="eyebrow">Trip total</p>
+            <button onClick={() => setShowAdd(true)}
+              className="h-7 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1 active:scale-[0.98] transition-transform">
+              <Plus className="w-3 h-3" /> Add
+            </button>
+          </div>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <p className="font-display italic text-[44px] leading-none tracking-[-0.01em]">
+              £{Math.floor(totalGbp).toLocaleString()}
+            </p>
+            <p className="font-display italic text-[20px] leading-none text-muted-foreground">
+              .{String(Math.round((totalGbp % 1) * 100)).padStart(2, '0')}
+            </p>
+          </div>
+          {members.length > 0 && (
+            <p className="font-mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase mt-1.5">
+              £{perHead.toFixed(0)} per head · avg
+            </p>
+          )}
 
-      <div className="flex items-end justify-between mb-5">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-1">Trip total</p>
-          <h1 className="font-display italic text-[42px] leading-none tracking-[-0.01em] text-foreground">
-            £{totalGbp.toFixed(2)}
-          </h1>
+          <svg height="2" width="100%" className="my-3.5" aria-hidden="true">
+            <line x1="0" y1="1" x2="100%" y2="1" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+          </svg>
+
+          <div className="flex justify-between">
+            <div>
+              <p className="eyebrow text-emerald-500 mb-1">You&apos;re owed</p>
+              <p className={`font-mono text-[18px] font-semibold ${myBalance > 0.01 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                {myBalance > 0.01 ? `+ £${myBalance.toFixed(2)}` : '£0.00'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="eyebrow text-primary mb-1">You owe</p>
+              <p className={`font-mono text-[18px] font-semibold ${myBalance < -0.01 ? 'text-primary' : 'text-muted-foreground'}`}>
+                {myBalance < -0.01 ? `− £${Math.abs(myBalance).toFixed(2)}` : '£0.00'}
+              </p>
+            </div>
+          </div>
         </div>
-        <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary-foreground bg-primary px-4 py-2 rounded-full mb-1">
-          <Plus className="w-4 h-4" /> Add
-        </button>
       </div>
+
+      {/* Settle suggestion */}
+      {topTransfer && (
+        <div className="px-4 pt-3">
+          <div className="bg-foreground text-background rounded-xl px-4 py-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[9px] opacity-60 uppercase tracking-[0.15em] mb-1">Suggested settle</p>
+              <p className="text-sm font-medium leading-snug">
+                <strong>{topTransfer.from === currentUserId ? 'You' : memberName(topTransfer.from)}</strong>
+                {' → '}
+                <strong>{topTransfer.to === currentUserId ? 'you' : memberName(topTransfer.to)}</strong>
+                {' '}£{topTransfer.amount.toFixed(2)}
+              </p>
+            </div>
+            {topTransfer.from === currentUserId && (
+              <button
+                onClick={() => { setPayTarget(topTransfer); setPayNote('') }}
+                className="h-8 px-3 rounded-full bg-primary text-primary-foreground text-xs font-semibold shrink-0 active:scale-[0.98] transition-transform">
+                Settle
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Offline banner */}
       <AnimatePresence>
         {!isOnline && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3 mb-4 text-amber-700 dark:text-amber-400">
+            className="mx-4 mt-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-amber-700 dark:text-amber-400">
             <WifiOff className="w-4 h-4 shrink-0" />
             <span className="text-sm font-medium">You&apos;re offline — expenses will sync when reconnected</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Pending offline expenses */}
+      {/* Pending offline */}
       {pendingExpenses.length > 0 && (
-        <div className="mb-4">
+        <div className="px-4 mt-3">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-amber-600 uppercase tracking-wider">
-              {pendingExpenses.length} pending sync
-            </p>
+            <p className="eyebrow text-amber-600">{pendingExpenses.length} pending sync</p>
             {isOnline && (
               <button onClick={syncPending} disabled={syncing}
                 className="flex items-center gap-1 text-xs text-primary font-medium">
@@ -198,87 +250,100 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
               </button>
             )}
           </div>
-          <div className="space-y-2">
-            {pendingExpenses.map(exp => (
-              <div key={exp.id} className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{exp.description}</p>
-                  <p className="text-xs text-muted-foreground">{exp.currency} {exp.amount.toFixed(2)} · pending</p>
-                </div>
-                <WifiOff className="w-4 h-4 text-amber-500 shrink-0" />
+          {pendingExpenses.map(exp => (
+            <div key={exp.id} className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 flex items-center justify-between mb-2">
+              <div>
+                <p className="text-sm font-medium">{exp.description}</p>
+                <p className="text-xs text-muted-foreground">{exp.currency} {exp.amount.toFixed(2)} · pending</p>
               </div>
-            ))}
-          </div>
+              <WifiOff className="w-4 h-4 text-amber-500 shrink-0" />
+            </div>
+          ))}
         </div>
       )}
 
       {/* Tab bar */}
-      <div className="flex bg-card border border-border rounded-2xl p-1 gap-1 mb-6">
-        {(['expenses', 'settle'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
-            {t === 'expenses' ? 'Expenses' : 'Settle Up'}
-          </button>
-        ))}
+      <div className="px-4 pt-4">
+        <div className="flex bg-card border border-border rounded-xl p-1 gap-1">
+          {(['expenses', 'settle'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+              {t === 'expenses' ? 'Expenses' : 'Settle Up'}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Expenses tab */}
       {tab === 'expenses' && (
-        expenses.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-2xl px-4 py-12 text-center">
-            <Receipt className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">No expenses yet</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {expenses.map(exp => {
-              const mySplit = exp.expense_splits.find(s => s.user_id === currentUserId)
-              return (
-                <div key={exp.id} className="bg-card border border-border rounded-2xl px-4 py-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="font-semibold text-sm">{exp.description}</p>
-                      <p className="text-xs text-muted-foreground">{exp.category} · paid by {memberName(exp.paid_by)}</p>
+        <div className="px-4 pt-4">
+          {expenses.length === 0 ? (
+            <div className="border border-dashed border-border rounded-xl px-4 py-12 text-center">
+              <p className="text-muted-foreground text-sm">No expenses yet</p>
+              <button onClick={() => setShowAdd(true)} className="mt-3 text-sm text-primary font-medium">+ Add first expense</button>
+            </div>
+          ) : (
+            <div>
+              <p className="eyebrow mb-3">Recent · {expenses.length}</p>
+              {expenses.map(exp => {
+                const payer = members.find(m => m.user_id === exp.paid_by)
+                const payerInitials = payer ? initials(payer.display_name) : '?'
+                const mySplit = exp.expense_splits.find(s => s.user_id === currentUserId)
+                return (
+                  <div key={exp.id} className="flex items-center gap-3 py-3 border-t border-border first:border-0">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                      <span className="font-display italic text-primary-foreground text-sm leading-none">{payerInitials[0]}</span>
                     </div>
-                    <div className="text-right shrink-0 ml-3">
-                      <p className="font-bold text-sm">{exp.currency !== 'GBP' ? `${exp.currency} ${exp.amount.toFixed(2)}` : `£${exp.amount.toFixed(2)}`}</p>
-                      {exp.currency !== 'GBP' && <p className="text-xs text-muted-foreground">≈ £{exp.amount_gbp.toFixed(2)}</p>}
-                    </div>
-                  </div>
-                  {mySplit && mySplit.amount_owed > 0 && (
-                    <div className={`flex items-center justify-between mt-2 pt-2 border-t border-border text-xs`}>
-                      <span className={mySplit.status === 'disputed' ? 'text-amber-500' : 'text-muted-foreground'}>
-                        You owe £{mySplit.amount_owed.toFixed(2)} {mySplit.status === 'disputed' ? '· disputed' : ''}
-                      </span>
-                      {mySplit.status === 'unpaid' && (
-                        <button onClick={() => startTransition(() => disputeSplit(tripId, mySplit.id) as any)}
-                          className="text-xs text-amber-500 font-medium">
-                          Dispute
-                        </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-foreground truncate">{exp.description}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground mt-0.5 tracking-[0.05em]">
+                        {new Date(exp.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {exp.split_type === 'equal_all' ? `split ${members.length}` : 'custom split'}
+                        {exp.currency !== 'GBP' ? ` · ${exp.currency}` : ''}
+                      </p>
+                      {mySplit && mySplit.amount_owed > 0 && mySplit.status !== 'paid' && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-xs ${mySplit.status === 'disputed' ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                            You owe £{mySplit.amount_owed.toFixed(2)}{mySplit.status === 'disputed' ? ' · disputed' : ''}
+                          </span>
+                          {mySplit.status === 'unpaid' && (
+                            <button onClick={() => startTransition(() => disputeSplit(tripId, mySplit.id) as any)}
+                              className="text-xs text-amber-500 font-medium">Dispute</button>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )
+                    <div className="text-right shrink-0">
+                      <p className="font-mono text-sm font-semibold">
+                        {exp.currency !== 'GBP' ? `${exp.currency} ${exp.amount.toFixed(2)}` : `£${exp.amount.toFixed(2)}`}
+                      </p>
+                      {exp.paid_by === currentUserId && (
+                        <p className="font-mono text-[9px] text-emerald-500 uppercase tracking-[0.1em] mt-0.5">● paid by you</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
 
+      {/* Settle tab */}
       {tab === 'settle' && (
-        <div className="space-y-6">
-          {/* Pending payment confirmations */}
+        <div className="px-4 pt-4 space-y-5">
+          {/* Pending confirmations */}
           {pendingPayments.filter(p => p.to_user_id === currentUserId).length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Awaiting your confirmation</p>
+              <p className="eyebrow mb-3">Awaiting your confirmation</p>
               <div className="space-y-2">
                 {pendingPayments.filter(p => p.to_user_id === currentUserId).map(p => (
-                  <div key={p.id} className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center justify-between">
+                  <div key={p.id} className="bg-card border border-border rounded-xl px-4 py-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold">{memberName(p.from_user_id)} sent £{p.amount.toFixed(2)}</p>
                       {p.note && <p className="text-xs text-muted-foreground">{p.note}</p>}
                     </div>
                     <button onClick={() => handleConfirm(p.id)} disabled={isPending}
-                      className="text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-xl disabled:opacity-50">
+                      className="text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-full disabled:opacity-50">
                       Confirm
                     </button>
                   </div>
@@ -287,44 +352,42 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
             </div>
           )}
 
-          {/* Transfer list */}
+          {/* Transfers */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Who owes who</p>
+            <p className="eyebrow mb-3">Who owes who</p>
             {transfers.length === 0 ? (
-              <div className="bg-card border border-border rounded-2xl px-4 py-6 text-center text-sm text-muted-foreground">
-                All settled up! 🎉
+              <div className="border border-dashed border-border rounded-xl px-4 py-6 text-center">
+                <p className="text-sm text-muted-foreground">All settled up</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-0">
                 {transfers.map((t, i) => {
                   const isMe = t.from === currentUserId
                   const pendingForThis = pendingPayments.find(p => p.from_user_id === t.from && p.to_user_id === t.to)
                   return (
-                    <div key={i} className="bg-card border border-border rounded-lg px-4 py-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold">
-                            {isMe ? 'You' : memberName(t.from)} → {t.to === currentUserId ? 'you' : memberName(t.to)}
-                          </p>
-                          <p className="font-mono text-[13px] text-primary font-semibold mt-0.5">£{t.amount.toFixed(2)}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          {isMe && !pendingForThis && (
-                            <button onClick={() => { setPayTarget(t); setPayNote('') }}
-                              className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-xl">
-                              Mark paid
-                            </button>
-                          )}
-                          {!isMe && t.to === currentUserId && !nudgedIds.has(t.from) && (
-                            <button onClick={() => handleNudge(t.from)}
-                              className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-xl">
-                              <Bell className="w-3 h-3" /> Nudge
-                            </button>
-                          )}
-                          {pendingForThis && (
-                            <span className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-xl">Pending</span>
-                          )}
-                        </div>
+                    <div key={i} className="flex items-center py-3 border-b border-dashed border-border last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">
+                          {isMe ? 'You' : memberName(t.from)} → {t.to === currentUserId ? 'you' : memberName(t.to)}
+                        </p>
+                        <p className="font-mono text-[13px] text-primary font-semibold mt-0.5">£{t.amount.toFixed(2)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        {isMe && !pendingForThis && (
+                          <button onClick={() => { setPayTarget(t); setPayNote('') }}
+                            className="text-xs font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+                            Mark paid
+                          </button>
+                        )}
+                        {!isMe && t.to === currentUserId && !nudgedIds.has(t.from) && (
+                          <button onClick={() => handleNudge(t.from)}
+                            className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-full">
+                            <Bell className="w-3 h-3" /> Nudge
+                          </button>
+                        )}
+                        {pendingForThis && (
+                          <span className="text-xs text-muted-foreground bg-secondary px-3 py-1.5 rounded-full">Pending</span>
+                        )}
                       </div>
                     </div>
                   )
@@ -335,14 +398,14 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
 
           {/* Per-person balances */}
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Balances</p>
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <p className="eyebrow mb-3">Balances</p>
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               {members.map((m, i) => {
                 const bal = balances[m.user_id] ?? 0
                 return (
-                  <div key={m.user_id} className={`flex items-center justify-between px-4 py-3 ${i < members.length - 1 ? 'border-b border-border' : ''}`}>
+                  <div key={m.user_id} className={`flex items-center justify-between px-4 py-3 ${i < members.length - 1 ? 'border-b border-dashed border-border' : ''}`}>
                     <span className="text-sm font-medium">{m.user_id === currentUserId ? 'You' : m.display_name}</span>
-                    <span className={`text-sm font-semibold ${bal > 0.01 ? 'text-emerald-600' : bal < -0.01 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    <span className={`font-mono text-sm font-semibold ${bal > 0.01 ? 'text-emerald-600' : bal < -0.01 ? 'text-primary' : 'text-muted-foreground'}`}>
                       {bal > 0.01 ? '+' : ''}{bal.toFixed(2)} GBP
                     </span>
                   </div>
@@ -361,52 +424,52 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
             onClick={() => setShowAdd(false)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="bg-background w-full rounded-t-3xl max-h-[90vh] overflow-y-auto max-w-mobile mx-auto"
+              className="bg-background w-full rounded-t-[28px] max-h-[90vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}>
-              <div className="sticky top-0 bg-background px-5 pt-5 pb-3 border-b border-border flex items-center justify-between">
-                <h2 className="text-lg font-bold">Add expense</h2>
+              <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                <h2 className="font-display italic text-[24px] leading-tight">Add expense</h2>
                 <button onClick={() => setShowAdd(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
               </div>
 
-              <form onSubmit={handleAdd} className="px-5 py-5 space-y-4">
+              <form onSubmit={handleAdd} className="px-5 py-4 space-y-4 pb-8">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Description</label>
+                  <label className="eyebrow mb-1.5 block">Description</label>
                   <input required autoFocus value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="Dinner at La Boqueria"
-                    className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                    className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                 </div>
 
                 <div className="flex gap-3">
                   <div className="w-24">
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Currency</label>
+                    <label className="eyebrow mb-1.5 block">Currency</label>
                     <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                      className="w-full h-12 px-3 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                      className="w-full h-12 px-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
                       {CURRENCIES.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Amount</label>
+                    <label className="eyebrow mb-1.5 block">Amount</label>
                     <input required type="number" min="0.01" step="0.01" value={form.amount}
                       onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                       placeholder="0.00"
-                      className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base font-semibold" />
+                      className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-base font-semibold" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Paid by</label>
+                  <label className="eyebrow mb-1.5 block">Paid by</label>
                   <select value={form.paid_by} onChange={e => setForm(f => ({ ...f, paid_by: e.target.value }))}
-                    className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
+                    className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm">
                     {members.map(m => <option key={m.user_id} value={m.user_id}>{m.user_id === currentUserId ? 'You' : m.display_name}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Category</label>
+                  <label className="eyebrow mb-1.5 block">Category</label>
                   <div className="flex flex-wrap gap-2">
                     {CATEGORIES.map(c => (
                       <button key={c} type="button" onClick={() => setForm(f => ({ ...f, category: c }))}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${form.category === c ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${form.category === c ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
                         {c}
                       </button>
                     ))}
@@ -414,7 +477,7 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-2">Split</label>
+                  <label className="eyebrow mb-2 block">Split</label>
                   <div className="flex gap-2 mb-3">
                     {(['equal_all', 'equal_select', 'custom'] as const).map(st => (
                       <button key={st} type="button" onClick={() => setForm(f => ({ ...f, split_type: st }))}
@@ -457,7 +520,7 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
                 {error && <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3">{error}</p>}
 
                 <button type="submit" disabled={isPending}
-                  className="w-full h-13 rounded-2xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
                   {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                   Add expense
                 </button>
@@ -474,22 +537,24 @@ export default function ExpensesView({ tripId, currentUserId, members, expenses,
             className="fixed inset-0 bg-black/50 z-[60] flex items-end"
             onClick={() => setPayTarget(null)}>
             <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-              className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"
+              transition={{ type: 'spring', damping: 32, stiffness: 300 }}
+              className="bg-card w-full rounded-t-[28px] p-6"
               onClick={e => e.stopPropagation()}>
-              <h2 className="text-lg font-bold mb-1">Mark as paid</h2>
+              <div className="w-10 h-1 rounded-full bg-border mx-auto mb-5" />
+              <h2 className="font-display italic text-[22px] mb-1">Mark as paid</h2>
               <p className="text-sm text-muted-foreground mb-4">
                 Send £{payTarget.amount.toFixed(2)} to {memberName(payTarget.to)} — they&apos;ll confirm receipt.
               </p>
               <div className="mb-4">
-                <label className="text-xs font-medium text-muted-foreground block mb-1">Note (optional)</label>
+                <label className="eyebrow mb-1.5 block">Note (optional)</label>
                 <input value={payNote} onChange={e => setPayNote(e.target.value)}
                   placeholder="Bank transfer, Monzo, etc."
-                  className="w-full h-12 px-4 rounded-2xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                  className="w-full h-12 px-4 rounded-xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setPayTarget(null)} className="flex-1 h-12 rounded-2xl border border-border text-sm font-medium">Cancel</button>
+                <button onClick={() => setPayTarget(null)} className="flex-1 h-12 rounded-full border border-border text-sm font-medium">Cancel</button>
                 <button onClick={handleRecordPayment} disabled={isPending}
-                  className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
+                  className="flex-1 h-12 rounded-full bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-transform">
                   Send
                 </button>
               </div>

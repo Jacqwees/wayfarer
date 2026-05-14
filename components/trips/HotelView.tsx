@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Hotel, Plus, Pencil, Trash2, X, Loader2, MapPin, ExternalLink } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Loader2, MapPin, ExternalLink } from 'lucide-react'
 import Script from 'next/script'
 import { saveHotel, deleteHotel } from '@/app/actions/hotel'
 
@@ -25,15 +25,126 @@ type Props = {
   canEdit: boolean
 }
 
-const emptyForm = { name: '', address: '', lat: null as number | null, lng: null as number | null, check_in_date: '', check_out_date: '', booking_ref: '', notes: '' }
+const emptyForm = {
+  name: '', address: '', lat: null as number | null, lng: null as number | null,
+  check_in_date: '', check_out_date: '', booking_ref: '', notes: '',
+}
 
 function nights(ci: string, co: string) {
-  const diff = (new Date(co).getTime() - new Date(ci).getTime()) / 86400000
-  return Math.round(diff)
+  return Math.round((new Date(co).getTime() - new Date(ci).getTime()) / 86400000)
 }
 
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+function openMaps(h: HotelRow) {
+  const q = h.lat && h.lng ? `${h.lat},${h.lng}` : encodeURIComponent(h.address)
+  window.open(`https://maps.google.com/?q=${q}`, '_blank')
+}
+
+function HotelCard({ h, canEdit, onEdit, onDelete }: {
+  h: HotelRow; canEdit: boolean; onEdit: () => void; onDelete: () => void
+}) {
+  const n = nights(h.check_in_date, h.check_out_date)
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {/* Header row */}
+      <div className="px-4 pt-4 pb-0 flex items-start justify-between">
+        <div>
+          <p className="eyebrow mb-0.5">accommodation</p>
+          <h2 className="font-display italic text-[22px] leading-tight tracking-[-0.01em]">{h.name}</h2>
+        </div>
+        {canEdit && (
+          <div className="flex gap-1 shrink-0">
+            <button onClick={onEdit} className="p-1.5 rounded-lg active:bg-muted transition-colors">
+              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+            <button onClick={onDelete} className="p-1.5 rounded-lg active:bg-destructive/10 transition-colors">
+              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Check-in card */}
+      <div className="px-4 py-4">
+        <div className="bg-background border border-border rounded-xl px-4 py-3 relative overflow-visible">
+          {/* notches */}
+          <div className="absolute -left-2 top-[58%] w-4 h-4 rounded-full bg-card border border-border z-10" />
+          <div className="absolute -right-2 top-[58%] w-4 h-4 rounded-full bg-card border border-border z-10" />
+
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="eyebrow mb-1">Check-in</p>
+              <p className="font-display italic text-[22px] leading-tight tracking-[-0.01em]">{formatDate(h.check_in_date)}</p>
+              <p className="font-mono text-[10px] text-muted-foreground tracking-[0.1em] mt-1">after 15:00</p>
+            </div>
+            <div className="flex-1 flex items-center justify-center pt-6">
+              <p className="font-mono text-[10px] text-muted-foreground tracking-[0.15em] uppercase">{n} night{n !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="text-right">
+              <p className="eyebrow mb-1">Check-out</p>
+              <p className="font-display italic text-[22px] leading-tight tracking-[-0.01em]">{formatDate(h.check_out_date)}</p>
+              <p className="font-mono text-[10px] text-muted-foreground tracking-[0.1em] mt-1">before 11:00</p>
+            </div>
+          </div>
+
+          <svg height="2" width="100%" className="my-3" aria-hidden="true">
+            <line x1="0" y1="1" x2="100%" y2="1" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+          </svg>
+
+          {h.booking_ref && (
+            <div className="flex justify-between">
+              <div>
+                <p className="eyebrow mb-1">Confirmation</p>
+                <p className="font-mono text-xs text-foreground font-medium uppercase">{h.booking_ref}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Map preview */}
+      <div className="px-4 pb-4">
+        <p className="eyebrow mb-2">Address</p>
+        <div className="h-28 bg-secondary rounded-xl border border-border relative overflow-hidden mb-3">
+          {/* Grid background */}
+          <svg width="100%" height="100%" className="absolute inset-0 opacity-40">
+            <defs>
+              <pattern id={`grid-${h.id}`} width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="hsl(var(--border))" strokeWidth="0.8" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill={`url(#grid-${h.id})`} />
+            <path d="M -10 60 Q 70 50 150 70 T 310 65" stroke="hsl(var(--primary))" strokeWidth="2.5" fill="none" opacity="0.25" />
+          </svg>
+          {/* Pin */}
+          <div className="absolute top-[35%] left-[38%]">
+            <MapPin className="w-6 h-6 text-primary" />
+          </div>
+          {/* Address chip */}
+          <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-background/85 backdrop-blur-sm border-t border-border">
+            <p className="font-mono text-[10px] text-foreground truncate tracking-wide">{h.address}</p>
+          </div>
+        </div>
+        <button
+          onClick={() => openMaps(h)}
+          className="w-full h-10 rounded-full border border-border text-sm font-medium text-foreground flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Open in Maps →
+        </button>
+      </div>
+
+      {h.notes && (
+        <div className="px-4 pb-4 border-t border-dashed border-border pt-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">{h.notes}</p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function HotelView({ tripId, hotels, canEdit }: Props) {
@@ -44,7 +155,6 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [mapsReady, setMapsReady] = useState(false)
   const addressRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<any>(null)
 
   useEffect(() => {
     if (mapsReady && form && addressRef.current && !(window as any).__hotelAC) {
@@ -55,7 +165,6 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
         const lng = place.geometry?.location?.lng() ?? null
         setForm(f => f && ({ ...f, address: place.formatted_address ?? f.address, lat, lng }))
       })
-      autocompleteRef.current = ac
       ;(window as any).__hotelAC = true
     }
   }, [mapsReady, form])
@@ -88,11 +197,6 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
     startTransition(async () => { await deleteHotel(tripId, id) })
   }
 
-  function openMaps(h: HotelRow) {
-    const q = h.lat && h.lng ? `${h.lat},${h.lng}` : encodeURIComponent(h.address)
-    window.open(`https://maps.google.com/?q=${q}`, '_blank')
-  }
-
   return (
     <>
       <Script
@@ -103,80 +207,46 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
 
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-        className="min-h-screen bg-background px-5 pt-14 pb-32 max-w-mobile mx-auto"
+        className="min-h-screen bg-background pb-32"
       >
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground mb-6 -ml-1">
-          <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
-        </button>
-
-        <div className="flex items-center justify-between mb-7">
-          <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Hotel</h1>
+        {/* Header */}
+        <div className="px-5 pt-14 pb-5 flex items-center justify-between">
+          <div>
+            <p className="eyebrow mb-0.5">where you&apos;re staying</p>
+            <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Hotel</h1>
+          </div>
           {canEdit && (
             <button onClick={openAdd}
-              className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-semibold active:scale-95 transition-transform">
+              className="h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center gap-1.5 active:scale-[0.98] transition-transform">
               <Plus className="w-3.5 h-3.5" /> Add
             </button>
           )}
         </div>
 
-        {hotels.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-lg px-4 py-12 text-center">
-            <Hotel className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">No accommodation added yet</p>
-            {canEdit && (
-              <button onClick={openAdd} className="mt-4 text-sm text-primary font-medium">+ Add hotel</button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {hotels.map(h => (
-              <div key={h.id} className="bg-card border border-border rounded-lg overflow-hidden">
-                <div className="px-4 py-4">
-                  <div className="flex items-start justify-between mb-1">
-                    <h2 className="font-semibold text-base">{h.name}</h2>
-                    {canEdit && (
-                      <div className="flex gap-1 shrink-0">
-                        <button onClick={() => openEdit(h)} className="p-1.5 rounded-xl hover:bg-muted transition-colors">
-                          <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
-                        <button onClick={() => setDeleteId(h.id)} className="p-1.5 rounded-xl hover:bg-destructive/10 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <button onClick={() => openMaps(h)} className="flex items-start gap-1.5 text-muted-foreground mb-3 text-left">
-                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span className="text-xs leading-relaxed">{h.address}</span>
-                    <ExternalLink className="w-3 h-3 shrink-0 mt-0.5" />
-                  </button>
-
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Check-in</p>
-                      <p className="text-sm font-semibold">{formatDate(h.check_in_date)}</p>
-                    </div>
-                    <div className="h-px flex-1 bg-border" />
-                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground text-center">{nights(h.check_in_date, h.check_out_date)}n</p>
-                    <div className="h-px flex-1 bg-border" />
-                    <div className="text-right">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Check-out</p>
-                      <p className="text-sm font-semibold">{formatDate(h.check_out_date)}</p>
-                    </div>
-                  </div>
-
-                  {h.booking_ref && (
-                    <div className="mt-3">
-                      <span className="text-xs bg-primary/10 text-primary rounded-lg px-2 py-1 font-mono">Ref: {h.booking_ref}</span>
-                    </div>
-                  )}
-                  {h.notes && <p className="text-xs text-muted-foreground mt-2">{h.notes}</p>}
-                </div>
+        <div className="px-4 space-y-4">
+          {hotels.length === 0 ? (
+            <div
+              className="border border-dashed border-border rounded-xl px-5 py-12 text-center"
+              onClick={() => canEdit && openAdd()}
+            >
+              <div className="w-12 h-12 rounded-full border border-dashed border-border flex items-center justify-center mx-auto mb-3">
+                <MapPin className="w-5 h-5 text-muted-foreground" />
               </div>
-            ))}
-          </div>
-        )}
+              <p className="text-muted-foreground text-sm">No accommodation added yet</p>
+              {canEdit && <p className="font-mono text-[10px] text-primary tracking-[0.1em] mt-3 uppercase">+ add hotel</p>}
+            </div>
+          ) : (
+            hotels.map(h => (
+              <HotelCard
+                key={h.id}
+                h={h}
+                canEdit={canEdit}
+                onEdit={() => openEdit(h)}
+                onDelete={() => setDeleteId(h.id)}
+              />
+            ))
+          )}
+        </div>
 
         {/* Add/Edit sheet */}
         <AnimatePresence>
@@ -186,62 +256,65 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
               onClick={() => setForm(null)}>
               <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                className="bg-background w-full rounded-t-3xl max-h-[90vh] overflow-y-auto max-w-mobile mx-auto"
+                className="bg-background w-full rounded-t-[28px] max-h-[90vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}>
-                <div className="sticky top-0 bg-background px-5 pt-5 pb-3 border-b border-border flex items-center justify-between">
-                  <h2 className="text-lg font-bold">{form.id ? 'Edit' : 'Add'} accommodation</h2>
-                  <button onClick={() => setForm(null)}><X className="w-5 h-5 text-muted-foreground" /></button>
+                <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                  <div>
+                    <div className="w-10 h-1 rounded-full bg-border mx-auto mb-4" />
+                    <h2 className="font-display italic text-[24px] leading-tight">{form.id ? 'Edit' : 'Add'} accommodation</h2>
+                  </div>
+                  <button onClick={() => setForm(null)} className="p-2 -mr-1"><X className="w-5 h-5 text-muted-foreground" /></button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
+                <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 pb-8">
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Hotel / property name</label>
+                    <label className="eyebrow mb-1.5 block">Property name</label>
                     <input required value={form.name} onChange={e => setForm(f => f && ({ ...f, name: e.target.value }))}
-                      placeholder="Barceló Raval"
-                      className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                      placeholder="Casa Boma"
+                      className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Address</label>
+                    <label className="eyebrow mb-1.5 block">Address</label>
                     <input ref={addressRef} required value={form.address}
                       onChange={e => setForm(f => f && ({ ...f, address: e.target.value }))}
                       placeholder="Search for the hotel…"
-                      className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                      className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground block mb-1">Check-in</label>
+                      <label className="eyebrow mb-1.5 block">Check-in</label>
                       <input required type="date" value={form.check_in_date}
                         onChange={e => setForm(f => f && ({ ...f, check_in_date: e.target.value }))}
-                        className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                        className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground block mb-1">Check-out</label>
+                      <label className="eyebrow mb-1.5 block">Check-out</label>
                       <input required type="date" value={form.check_out_date}
                         onChange={e => setForm(f => f && ({ ...f, check_out_date: e.target.value }))}
-                        className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
+                        className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Booking reference</label>
+                    <label className="eyebrow mb-1.5 block">Booking reference</label>
                     <input value={form.booking_ref} onChange={e => setForm(f => f && ({ ...f, booking_ref: e.target.value }))}
-                      placeholder="ABC123"
-                      className="w-full h-12 px-4 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                      placeholder="CB-2026-7841"
+                      className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Notes</label>
+                    <label className="eyebrow mb-1.5 block">Notes</label>
                     <textarea value={form.notes} onChange={e => setForm(f => f && ({ ...f, notes: e.target.value }))}
                       placeholder="Pool access, breakfast included…" rows={2}
-                      className="w-full px-4 py-3 rounded-2xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm resize-none" />
+                      className="w-full px-4 py-3 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm resize-none" />
                   </div>
 
                   {error && <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-3">{error}</p>}
 
                   <button type="submit" disabled={isPending}
-                    className="w-full h-13 rounded-2xl bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                    className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
                     {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                     {form.id ? 'Save changes' : 'Add accommodation'}
                   </button>
@@ -258,14 +331,17 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
               className="fixed inset-0 bg-black/50 z-[60] flex items-end"
               onClick={() => setDeleteId(null)}>
               <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-                className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"
+                transition={{ type: 'spring', damping: 32, stiffness: 300 }}
+                className="bg-card w-full rounded-t-[28px] p-6"
                 onClick={e => e.stopPropagation()}>
-                <h2 className="text-lg font-bold mb-2">Remove accommodation?</h2>
+                <div className="w-10 h-1 rounded-full bg-border mx-auto mb-5" />
+                <h2 className="font-display italic text-[22px] mb-2">Remove accommodation?</h2>
                 <p className="text-sm text-muted-foreground mb-6">This cannot be undone.</p>
                 <div className="flex gap-3">
-                  <button onClick={() => setDeleteId(null)} className="flex-1 h-12 rounded-2xl border border-border text-sm font-medium">Cancel</button>
-                  <button onClick={() => handleDelete(deleteId)} disabled={isPending}
-                    className="flex-1 h-12 rounded-2xl bg-destructive text-white text-sm font-semibold disabled:opacity-50">Delete</button>
+                  <button onClick={() => setDeleteId(null)}
+                    className="flex-1 h-12 rounded-full border border-border text-sm font-medium">Cancel</button>
+                  <button onClick={() => handleDelete(deleteId!)} disabled={isPending}
+                    className="flex-1 h-12 rounded-full bg-destructive text-white text-sm font-semibold disabled:opacity-50">Delete</button>
                 </div>
               </motion.div>
             </motion.div>

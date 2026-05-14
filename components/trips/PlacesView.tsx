@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Search, Star, DollarSign, Heart, HeartOff, CalendarPlus, X, Loader2, MapPin } from 'lucide-react'
+import { Search, Star, Heart, CalendarPlus, X, Loader2, MapPin } from 'lucide-react'
 import Script from 'next/script'
 import { savePlace, removePlace, addPlaceToItinerary } from '@/app/actions/places'
 
@@ -30,11 +30,11 @@ type Props = {
 
 const categories = [
   { key: 'all', label: 'All' },
-  { key: 'eat', label: '🍽 Eat' },
-  { key: 'drink', label: '🍸 Drink' },
-  { key: 'activity', label: '🎭 Activity' },
-  { key: 'sight', label: '🏛 Sight' },
-  { key: 'other', label: '📍 Other' },
+  { key: 'eat', label: '◉ Food' },
+  { key: 'drink', label: '☾ Drinks' },
+  { key: 'activity', label: '◢ Activity' },
+  { key: 'sight', label: '★ Sights' },
+  { key: 'other', label: '◐ Other' },
 ] as const
 
 const googleCategoryMap: Record<string, Place['category']> = {
@@ -44,7 +44,7 @@ const googleCategoryMap: Record<string, Place['category']> = {
   amusement_park: 'activity', gym: 'activity', spa: 'activity',
 }
 
-function getPriceSymbol(level: number | null) {
+function priceSymbol(level: number | null) {
   if (!level) return null
   return '£'.repeat(level)
 }
@@ -91,11 +91,7 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
     const location = destination.lat && destination.lng
       ? new (window as any).google.maps.LatLng(destination.lat, destination.lng)
       : undefined
-    serviceRef.current.textSearch({
-      query: query.trim(),
-      location,
-      radius: 30000,
-    }, (res: SearchResult[], status: string) => {
+    serviceRef.current.textSearch({ query: query.trim(), location, radius: 30000 }, (res: SearchResult[], status: string) => {
       setSearching(false)
       if (status === 'OK') setResults(res.slice(0, 20))
     })
@@ -112,28 +108,18 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
     const photoUrl = r.photos?.[0]?.getUrl({ maxWidth: 400 }) ?? null
     startTransition(async () => {
       const res = await savePlace(tripId, {
-        google_place_id: r.place_id,
-        name: r.name,
+        google_place_id: r.place_id, name: r.name,
         category: inferCategory(r.types),
-        lat: r.geometry.location.lat(),
-        lng: r.geometry.location.lng(),
-        price_level: r.price_level ?? null,
-        rating: r.rating ?? null,
-        photo_url: photoUrl,
+        lat: r.geometry.location.lat(), lng: r.geometry.location.lng(),
+        price_level: r.price_level ?? null, rating: r.rating ?? null, photo_url: photoUrl,
       })
       if (!res.error) {
         setSavedPlaces(p => [...p, {
-          id: Math.random().toString(),
-          google_place_id: r.place_id,
-          name: r.name,
+          id: Math.random().toString(), google_place_id: r.place_id, name: r.name,
           category: inferCategory(r.types),
-          lat: r.geometry.location.lat(),
-          lng: r.geometry.location.lng(),
-          price_level: r.price_level ?? null,
-          rating: r.rating ?? null,
-          photo_url: photoUrl,
-          added_to_itinerary: false,
-          added_by: '',
+          lat: r.geometry.location.lat(), lng: r.geometry.location.lng(),
+          price_level: r.price_level ?? null, rating: r.rating ?? null,
+          photo_url: photoUrl, added_to_itinerary: false, added_by: '',
         }])
       }
     })
@@ -158,6 +144,10 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
   const savedIds = new Set(savedPlaces.map(p => p.google_place_id))
   const filtered = savedPlaces.filter(p => filter === 'all' || p.category === filter)
 
+  // Featured = first place with a photo
+  const featured = filtered.find(p => p.photo_url)
+  const grid = filter === 'all' && featured ? filtered : filtered
+
   return (
     <>
       <Script
@@ -168,43 +158,42 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
 
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
-        className="min-h-screen bg-background px-5 pt-14 pb-32 max-w-mobile mx-auto"
+        className="min-h-screen bg-background pb-32"
       >
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground mb-6 -ml-1">
-          <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
-        </button>
+        {/* Header */}
+        <div className="px-5 pt-14 pb-3">
+          <p className="eyebrow mb-0.5">near {destination.name.split(',')[0]}</p>
+          <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Things to do</h1>
+        </div>
 
-        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-0.5">Things To Do</h1>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-5">near {destination.name.split(',')[0]}</p>
-
-        {/* Search bar */}
-        <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            ref={inputRef}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && doSearch()}
-            placeholder="Search restaurants, museums…"
-            disabled={!mapsReady}
-            className="w-full h-12 pl-10 pr-20 rounded-full border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-          />
-          <button onClick={doSearch} disabled={!mapsReady || !query.trim()}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary disabled:opacity-40">
-            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
-          </button>
+        {/* Search */}
+        <div className="px-4 mb-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && doSearch()}
+              placeholder="Search restaurants, museums…"
+              disabled={!mapsReady}
+              className="w-full h-12 pl-10 pr-20 rounded-full border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+            />
+            <button onClick={doSearch} disabled={!mapsReady || !query.trim()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-primary disabled:opacity-40">
+              {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+            </button>
+          </div>
         </div>
 
         {/* Search results */}
         <AnimatePresence>
           {results.length > 0 && (
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="bg-card border border-border rounded-lg overflow-hidden mb-6 shadow-lg">
+              className="mx-4 bg-card border border-border rounded-xl overflow-hidden mb-4 shadow-lg">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <span className="text-xs font-semibold text-muted-foreground">{results.length} results</span>
+                <span className="eyebrow">{results.length} results</span>
                 <button onClick={() => setResults([])}><X className="w-4 h-4 text-muted-foreground" /></button>
               </div>
-              <div className="divide-y divide-border max-h-80 overflow-y-auto">
+              <div className="divide-y divide-border max-h-72 overflow-y-auto">
                 {results.map(r => {
                   const saved = savedIds.has(r.place_id)
                   return (
@@ -214,11 +203,11 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
                         {r.formatted_address && <p className="text-xs text-muted-foreground truncate">{r.formatted_address}</p>}
                         <div className="flex items-center gap-2 mt-0.5">
                           {r.rating && <span className="text-xs text-amber-500 flex items-center gap-0.5"><Star className="w-3 h-3 fill-amber-500" />{r.rating}</span>}
-                          {r.price_level && <span className="text-xs text-muted-foreground">{getPriceSymbol(r.price_level ?? null)}</span>}
+                          {r.price_level && <span className="text-xs text-muted-foreground">{priceSymbol(r.price_level ?? null)}</span>}
                         </div>
                       </div>
                       <button onClick={() => saved ? null : handleSave(r)} disabled={saved || isPending}
-                        className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${saved ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'}`}>
+                        className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${saved ? 'bg-secondary text-muted-foreground' : 'bg-primary text-primary-foreground'}`}>
                         {saved ? 'Saved' : 'Save'}
                       </button>
                     </div>
@@ -229,53 +218,100 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
           )}
         </AnimatePresence>
 
-        {/* Filter pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-5 -mx-1 px-1 scrollbar-none">
+        {/* Category chips */}
+        <div className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-none mb-2">
           {categories.map(c => (
             <button key={c.key} onClick={() => setFilter(c.key as any)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filter === c.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                filter === c.key
+                  ? 'bg-foreground text-background'
+                  : 'bg-card border border-border text-foreground'
+              }`}>
               {c.label}
             </button>
           ))}
         </div>
 
+        {/* Featured card */}
+        {featured && filter === 'all' && (
+          <div className="px-4 mb-3">
+            <div className="h-44 rounded-xl relative overflow-hidden" style={{ background: 'hsl(var(--secondary))' }}>
+              {featured.photo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={featured.photo_url} alt="" className="w-full h-full object-cover" />
+              )}
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.1) 30%, rgba(0,0,0,0.65) 100%)' }} />
+              <div className="absolute top-3 left-3">
+                <span className="font-mono text-[9px] text-white/90 tracking-[0.1em] bg-black/30 backdrop-blur-sm px-2 py-1 rounded-full">● recommended</span>
+              </div>
+              <button
+                onClick={() => handleRemove(featured.id)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center active:scale-95 transition-transform">
+                <Heart className="w-3.5 h-3.5 text-primary fill-primary" />
+              </button>
+              <div className="absolute bottom-3 left-4 right-4 text-white">
+                <p className="font-display italic text-[22px] leading-tight">{featured.name}</p>
+                <div className="flex gap-2 mt-1.5 font-mono text-[11px] text-white/85 tracking-[0.1em]">
+                  {featured.rating && <span>★ {featured.rating}</span>}
+                  {featured.rating && (featured.price_level || featured.category) && <span>·</span>}
+                  {featured.price_level && <span>{priceSymbol(featured.price_level)}</span>}
+                  <span>·</span>
+                  <span className="capitalize">{featured.category}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Saved places */}
         {filtered.length === 0 ? (
-          <div className="bg-card border border-dashed border-border rounded-lg px-4 py-12 text-center">
-            <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">
-              {savedPlaces.length === 0 ? 'Search for places to save them here' : 'No saved places in this category'}
-            </p>
+          <div className="px-4">
+            <div className="border border-dashed border-border rounded-xl px-4 py-12 text-center">
+              <MapPin className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">
+                {savedPlaces.length === 0 ? 'Search for places to save them here' : 'No saved places in this category'}
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filtered.map(p => (
-              <div key={p.id} className="bg-card border border-border rounded-lg overflow-hidden flex">
-                {p.photo_url && (
-                  <img src={p.photo_url} alt="" className="w-20 h-20 object-cover shrink-0" />
-                )}
-                <div className="flex-1 px-4 py-3 min-w-0">
-                  <p className="font-semibold text-sm truncate">{p.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5 mb-2">
-                    {p.rating && <span className="text-xs text-amber-500 flex items-center gap-0.5"><Star className="w-3 h-3 fill-amber-500" />{p.rating}</span>}
-                    {p.price_level && <span className="text-xs text-muted-foreground">{getPriceSymbol(p.price_level)}</span>}
-                    <span className="text-xs text-muted-foreground capitalize">{p.category}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setAddItinPlace(p.id); setSelectedDay(days[0] ?? '') }}
-                      disabled={p.added_to_itinerary}
-                      className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition-colors ${p.added_to_itinerary ? 'text-muted-foreground bg-muted' : 'text-primary bg-primary/10'}`}>
-                      <CalendarPlus className="w-3 h-3" />
-                      {p.added_to_itinerary ? 'Added' : 'Add to itinerary'}
+          <div className="px-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="eyebrow">Saved · {filtered.length}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {grid.map(p => (
+                <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                  <div className="h-24 relative" style={{ background: 'hsl(var(--secondary))' }}>
+                    {p.photo_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.photo_url} alt="" className="w-full h-full object-cover" />
+                    )}
+                    <button
+                      onClick={() => handleRemove(p.id)}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center">
+                      <Heart className="w-3 h-3 text-primary fill-primary" />
                     </button>
-                    <button onClick={() => handleRemove(p.id)} disabled={isPending}
-                      className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg text-destructive bg-destructive/10 transition-colors">
-                      <HeartOff className="w-3 h-3" /> Remove
+                    <div className="absolute bottom-1.5 left-2 font-mono text-[9px] text-white bg-black/40 px-1.5 py-0.5 rounded tracking-[0.08em]">
+                      ● {p.category}
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-2.5">
+                    <p className="font-semibold text-[12.5px] text-foreground truncate tracking-[-0.01em]">{p.name}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground mt-0.5 tracking-[0.05em]">
+                      {priceSymbol(p.price_level) ?? '—'}
+                      {p.rating ? ` · ★ ${p.rating}` : ''}
+                    </p>
+                    <button
+                      onClick={() => { setAddItinPlace(p.id); setSelectedDay(days[0] ?? '') }}
+                      disabled={p.added_to_itinerary}
+                      className={`mt-2 flex items-center gap-1 text-[10px] font-medium ${p.added_to_itinerary ? 'text-muted-foreground' : 'text-primary'}`}>
+                      <CalendarPlus className="w-3 h-3" />
+                      {p.added_to_itinerary ? 'Added' : 'Add to plan'}
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -286,21 +322,23 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
               className="fixed inset-0 bg-black/50 z-[60] flex items-end"
               onClick={() => setAddItinPlace(null)}>
               <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-                className="bg-card w-full rounded-t-3xl p-6 max-w-mobile mx-auto"
+                transition={{ type: 'spring', damping: 32, stiffness: 300 }}
+                className="bg-card w-full rounded-t-[28px] p-6"
                 onClick={e => e.stopPropagation()}>
-                <h2 className="text-lg font-bold mb-4">Add to which day?</h2>
-                <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+                <div className="w-10 h-1 rounded-full bg-border mx-auto mb-5" />
+                <h2 className="font-display italic text-[22px] mb-4">Add to which day?</h2>
+                <div className="space-y-2 mb-5 max-h-60 overflow-y-auto">
                   {days.map(d => (
                     <button key={d} onClick={() => setSelectedDay(d)}
-                      className={`w-full px-4 py-3 rounded-2xl border text-sm font-medium text-left transition-colors ${selectedDay === d ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background'}`}>
+                      className={`w-full px-4 py-3 rounded-xl border text-sm font-medium text-left transition-colors ${selectedDay === d ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-background'}`}>
                       {formatDay(d)}
                     </button>
                   ))}
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => setAddItinPlace(null)} className="flex-1 h-12 rounded-2xl border border-border text-sm font-medium">Cancel</button>
+                  <button onClick={() => setAddItinPlace(null)} className="flex-1 h-12 rounded-full border border-border text-sm font-medium">Cancel</button>
                   <button onClick={handleAddToItinerary} disabled={isPending}
-                    className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">Add</button>
+                    className="flex-1 h-12 rounded-full bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-transform">Add</button>
                 </div>
               </motion.div>
             </motion.div>
