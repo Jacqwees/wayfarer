@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { savePushSubscription } from '@/app/actions/push'
 
 const slide = {
@@ -27,6 +27,36 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary)
 }
 
+const TOGGLES = [
+  { key: 'push',     label: 'Push notifications',  sub: 'On your phone, immediately',      defaultOn: true },
+  { key: 'email',    label: 'Email summaries',      sub: 'Weekly digest while planning',    defaultOn: true },
+  { key: 'expenses', label: 'Expense alerts only',  sub: 'The financial stuff, nothing else', defaultOn: false },
+]
+
+function ToggleRow({ label, sub, on, onToggle }: { label: string; sub: string; on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center py-3.5 border-b border-dashed border-border last:border-0 text-left gap-3"
+    >
+      <div className="flex-1">
+        <p className="text-sm font-medium text-foreground leading-tight">{label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
+      </div>
+      <div
+        className="w-10 h-6 rounded-full relative flex-shrink-0 transition-colors"
+        style={{ background: on ? 'hsl(var(--primary))' : 'hsl(var(--border))' }}
+      >
+        <div
+          className="absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white transition-all"
+          style={{ left: on ? 19 : 3 }}
+        />
+      </div>
+    </button>
+  )
+}
+
 export default function StepNotifications({
   onBack,
   onNext,
@@ -36,57 +66,48 @@ export default function StepNotifications({
   onNext: () => void
   saving: boolean
 }) {
-  const [requested, setRequested] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
   const [subscribing, setSubscribing] = useState(false)
+  const [toggles, setToggles] = useState<Record<string, boolean>>(
+    Object.fromEntries(TOGGLES.map((t) => [t.key, t.defaultOn]))
+  )
 
-  async function enableNotifications() {
+  function toggle(key: string) {
+    setToggles((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  async function enableAndContinue() {
     setSubscribing(true)
     try {
-      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        // Browser doesn't support push — skip silently
-        onNext()
-        return
-      }
-
-      const permission = await Notification.requestPermission()
-      if (permission !== 'granted') {
-        // User denied — move on without subscribing
-        setRequested(true)
-        onNext()
-        return
-      }
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      if (!vapidKey) {
-        // VAPID not configured yet — skip
-        setRequested(true)
-        onNext()
-        return
-      }
-
-      const reg = await navigator.serviceWorker.ready
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      })
-
-      const p256dh = sub.getKey('p256dh')
-      const auth = sub.getKey('auth')
-
-      if (p256dh && auth) {
-        await savePushSubscription({
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: arrayBufferToBase64(p256dh),
-            auth: arrayBufferToBase64(auth),
-          },
-        })
+      if ('Notification' in window && 'serviceWorker' in navigator) {
+        const permission = await Notification.requestPermission()
+        if (permission === 'granted') {
+          const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+          if (vapidKey) {
+            const reg = await navigator.serviceWorker.ready
+            const sub = await reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidKey),
+            })
+            const p256dh = sub.getKey('p256dh')
+            const auth = sub.getKey('auth')
+            if (p256dh && auth) {
+              await savePushSubscription({
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: arrayBufferToBase64(p256dh),
+                  auth: arrayBufferToBase64(auth),
+                },
+              })
+            }
+          }
+        }
       }
     } catch {
       // Silent — push failing shouldn't block onboarding
     } finally {
       setSubscribing(false)
-      setRequested(true)
+      setSubscribed(true)
       onNext()
     }
   }
@@ -97,29 +118,52 @@ export default function StepNotifications({
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
 
-      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 pb-8">
-        <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Bell className="w-10 h-10 text-primary" />
-        </div>
-        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">Stay in the loop</h1>
-        <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-          Get notified when someone joins your trip, adds an expense, or sends you money.
-          You can change this anytime in settings.
+      <p className="eyebrow mb-2">step 04 · 04</p>
+      <h1 className="font-display italic text-[36px] leading-[0.95] tracking-[-0.01em] mb-1.5">
+        One last thing.
+      </h1>
+      <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+        Get pinged when someone adds an expense, accepts an invite, or drops a new plan in the itinerary.
+      </p>
+
+      {/* Toggle rows */}
+      <div className="bg-card border border-border rounded-2xl px-4 mb-5">
+        {TOGGLES.map((t) => (
+          <ToggleRow
+            key={t.key}
+            label={t.label}
+            sub={t.sub}
+            on={toggles[t.key]}
+            onToggle={() => toggle(t.key)}
+          />
+        ))}
+      </div>
+
+      {/* Perforated divider */}
+      <svg height="2" width="100%" className="mb-5" aria-hidden="true">
+        <line x1="0" y1="1" x2="100%" y2="1" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+      </svg>
+
+      {/* Tip card */}
+      <div className="bg-secondary border border-dashed border-border rounded-xl px-4 py-3.5 mb-auto">
+        <p className="eyebrow mb-1.5">Tip</p>
+        <p className="text-sm text-foreground leading-relaxed">
+          You can mute a trip from inside it. Quiet mode is per-trip, per-person.
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="mt-8 space-y-3">
         <button
-          onClick={enableNotifications}
-          disabled={saving || subscribing || requested}
+          onClick={enableAndContinue}
+          disabled={saving || subscribing || subscribed}
           className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-base disabled:opacity-50 active:scale-[0.98] transition-transform"
         >
-          {subscribing ? 'Setting up…' : 'Enable notifications'}
+          {subscribing ? 'Setting up…' : "Let's go →"}
         </button>
         <button
           onClick={onNext}
           disabled={saving || subscribing}
-          className="w-full text-center text-sm text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+          className="w-full text-center text-sm text-muted-foreground disabled:opacity-50"
         >
           Maybe later
         </button>

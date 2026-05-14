@@ -18,6 +18,31 @@ export type OnboardingData = {
   phone_visibility: 'trip' | 'friend' | 'private'
   bio_visibility: 'trip' | 'friend' | 'private'
   home_city_visibility: 'trip' | 'friend' | 'private'
+  travel_tags: string[]
+  budget_tier: 'Backpack' | 'Comfort' | 'Plush'
+}
+
+function ProgressDots({ step, total }: { step: number; total: number }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: total }).map((_, i) => (
+        <span
+          key={i}
+          className="rounded-full transition-all duration-200"
+          style={{
+            width: i === step ? 22 : 6,
+            height: 6,
+            background:
+              i === step
+                ? 'hsl(var(--primary))'
+                : i < step
+                  ? 'hsl(var(--foreground))'
+                  : 'hsl(var(--border))',
+          }}
+        />
+      ))}
+    </div>
+  )
 }
 
 const STEPS = ['name', 'details', 'notifications', 'ready'] as const
@@ -44,6 +69,8 @@ export default function OnboardingFlow({
     phone_visibility: 'trip',
     bio_visibility: 'trip',
     home_city_visibility: 'trip',
+    travel_tags: [],
+    budget_tier: 'Comfort',
   })
 
   function update(patch: Partial<OnboardingData>) {
@@ -60,6 +87,8 @@ export default function OnboardingFlow({
       phone: data.phone.trim() || null,
       bio: data.bio.trim() || null,
       home_city: data.home_city.trim() || null,
+      // @ts-ignore — travel_tags column exists but supabase types may not reflect it
+      travel_tags: data.travel_tags.length > 0 ? data.travel_tags : null,
       onboarding_complete: true,
     }).eq('id', userId)
 
@@ -69,7 +98,6 @@ export default function OnboardingFlow({
       home_city_visibility: data.home_city_visibility,
     }).eq('user_id', userId)
 
-    // Check for pending invites
     const { data: invites } = await supabase
       .from('invitations')
       .select('id')
@@ -79,24 +107,13 @@ export default function OnboardingFlow({
 
     setHasPendingInvites((invites?.length ?? 0) > 0)
     setSaving(false)
-    setStep(3) // ready screen
+    setStep(3)
   }
 
-  const totalSteps = STEPS.length - 1 // 'ready' doesn't count
+  const totalSteps = STEPS.length - 1
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress bar — hidden on ready screen */}
-      {step < totalSteps && (
-        <div className="h-1 bg-muted">
-          <motion.div
-            className="h-full bg-primary"
-            animate={{ width: `${((step + 1) / totalSteps) * 100}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-          />
-        </div>
-      )}
-
       <div className="flex-1 flex flex-col px-6 pt-10 pb-8 max-w-sm mx-auto w-full">
         <AnimatePresence mode="wait">
           {step === 0 && (
@@ -137,6 +154,13 @@ export default function OnboardingFlow({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Progress dots — shown on steps 0–2 */}
+      {step < totalSteps && (
+        <div className="pb-8 flex justify-center">
+          <ProgressDots step={step} total={totalSteps} />
+        </div>
+      )}
     </div>
   )
 }

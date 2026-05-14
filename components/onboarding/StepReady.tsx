@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { MapPin, Bell } from 'lucide-react'
+import { LogoMark } from '@/components/shared/Logo'
 
 export default function StepReady({
   displayName,
@@ -16,38 +16,55 @@ export default function StepReady({
   onCheckInvites: () => void
   onJoinTrip?: () => void
 }) {
+  const firstName = displayName.split(' ')[0]
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="flex flex-col flex-1 items-center justify-center text-center space-y-4"
+      className="flex flex-col flex-1 items-center justify-center text-center"
     >
+      {/* Animated logo mark */}
       <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
-        className="text-6xl"
+        className="mb-8"
       >
-        🌍
+        <LogoMark size={72} />
       </motion.div>
 
-      <div className="space-y-2">
-        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">
-          You&apos;re all set, {displayName.split(' ')[0]}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.4 }}
+        className="space-y-2 mb-8"
+      >
+        <h1 className="font-display italic text-[34px] leading-tight tracking-[-0.01em]">
+          Let&apos;s go, {firstName}.
         </h1>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          Time to start planning something amazing.
+        <p className="text-muted-foreground text-sm leading-relaxed max-w-[260px] mx-auto">
+          Your squad is waiting. Time to plan something worth packing for.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="w-full space-y-3 pt-4">
+      {/* Perforated divider */}
+      <svg height="2" width="180" className="mb-8" aria-hidden="true">
+        <line x1="0" y1="1" x2="180" y2="1" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+      </svg>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.35 }}
+        className="w-full space-y-3"
+      >
         {onJoinTrip && (
           <button
             onClick={onJoinTrip}
             className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <MapPin className="w-4 h-4" />
             Join your trip →
           </button>
         )}
@@ -56,20 +73,22 @@ export default function StepReady({
             onClick={onCheckInvites}
             className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Bell className="w-4 h-4" />
-            Check your trip invites
+            Check your invites →
           </button>
         )}
         {!onJoinTrip && (
           <button
             onClick={onCreateTrip}
-            className={`w-full h-12 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform font-semibold text-sm rounded-full ${hasPendingInvites ? 'border border-border text-foreground' : 'bg-primary text-primary-foreground text-base'}`}
+            className={`w-full h-12 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform font-semibold text-sm rounded-full ${
+              hasPendingInvites
+                ? 'border border-border text-foreground'
+                : 'bg-primary text-primary-foreground text-base'
+            }`}
           >
-            <MapPin className="w-4 h-4" />
-            Create your first trip
+            Plan a trip
           </button>
         )}
-      </div>
+      </motion.div>
     </motion.div>
   )
 }

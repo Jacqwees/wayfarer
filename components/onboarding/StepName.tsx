@@ -4,6 +4,8 @@ import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { LogoMark } from '@/components/shared/Logo'
+import { Spinner } from '@/components/shared/Spinner'
 import type { OnboardingData } from './OnboardingFlow'
 
 const slide = {
@@ -33,9 +35,7 @@ export default function StepName({
     const supabase = createClient()
     const ext = file.name.split('.').pop()
     const path = `avatars/${userId}.${ext}`
-    const { error } = await supabase.storage
-      .from('avatars')
-      .upload(path, file, { upsert: true })
+    const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
     if (!error) {
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
       update({ avatar_url: urlData.publicUrl })
@@ -45,44 +45,66 @@ export default function StepName({
 
   return (
     <motion.div {...slide} transition={{ duration: 0.3, ease: 'easeOut' }} className="flex flex-col flex-1">
-      <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-1">Welcome to SquadStay</h1>
-      <p className="text-muted-foreground text-sm mb-8">
-        Let&apos;s set up your profile so your travel crew can find you.
+
+      {/* Logo mark */}
+      <div className="flex justify-center mb-8">
+        <LogoMark size={36} />
+      </div>
+
+      <p className="eyebrow mb-2">step 01 · 04</p>
+      <h1 className="font-display italic text-[36px] leading-[0.95] tracking-[-0.01em] mb-1.5">
+        Who&apos;s packing?
+      </h1>
+      <p className="text-muted-foreground text-sm leading-relaxed mb-8">
+        How your squad sees you in trips.
       </p>
 
       {/* Avatar picker */}
-      <div className="flex justify-center mb-8">
+      <div className="flex items-center gap-4 mb-8">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="relative w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden group"
+          className="relative w-[72px] h-[72px] rounded-full bg-primary flex items-center justify-center overflow-hidden group active:scale-[0.97] transition-transform flex-shrink-0"
         >
           {data.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+            <img src={data.avatar_url} alt="Your avatar" className="w-full h-full object-cover" />
           ) : (
-            <User className="w-10 h-10 text-muted-foreground" />
+            <span className="font-display italic text-primary-foreground text-[32px] leading-none">
+              {(data.display_name?.[0] ?? '?').toUpperCase()}
+            </span>
           )}
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
-            <Camera className="w-6 h-6 text-white" />
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity rounded-full">
+            <Camera className="w-5 h-5 text-white" />
           </div>
           {uploading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+              <Spinner size={20} className="text-white" />
             </div>
           )}
+          {/* Plus badge */}
+          <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-foreground border-2 border-background flex items-center justify-center pointer-events-none">
+            <User className="w-3 h-3 text-background" />
+          </div>
         </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatar}
-        />
+
+        <div>
+          <p className="eyebrow mb-1">Display photo</p>
+          <p className="text-muted-foreground text-xs leading-relaxed max-w-[180px]">
+            Tap to add a photo — your squad will see this
+          </p>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
       </div>
 
-      <div className="space-y-2 mb-auto">
-        <label className="text-sm font-medium">Display name</label>
+      {/* Perforated divider */}
+      <svg height="2" width="100%" className="mb-6" aria-hidden="true">
+        <line x1="0" y1="1" x2="100%" y2="1" stroke="hsl(var(--border))" strokeWidth="1.5" strokeDasharray="3 5" />
+      </svg>
+
+      {/* Name input */}
+      <div className="space-y-1.5 mb-auto">
+        <label className="eyebrow">Your name</label>
         <input
           type="text"
           value={data.display_name}
@@ -96,9 +118,9 @@ export default function StepName({
       <button
         onClick={onNext}
         disabled={!data.display_name.trim()}
-        className="mt-8 w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+        className="mt-8 w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold text-base disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
       >
-        Continue
+        Next →
       </button>
     </motion.div>
   )
