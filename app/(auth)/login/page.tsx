@@ -23,7 +23,7 @@ function LoginForm() {
   const [mode, setMode] = useState<Mode>(prefillMode)
   const [stage, setStage] = useState<Stage>('form')
   const [email, setEmail] = useState(prefillEmail)
-  const [digits, setDigits] = useState(['', '', '', '', '', ''])
+  const [digits, setDigits] = useState(['', '', '', '', '', '', '', ''])
   const [errorMsg, setErrorMsg] = useState('')
   const [sending, setSending] = useState(false)
   const [resent, setResent] = useState(false)
@@ -54,7 +54,7 @@ function LoginForm() {
   async function handleCodeSubmit(e?: React.FormEvent) {
     e?.preventDefault()
     const code = digits.join('')
-    if (code.length < 6 || stage === 'verifying') return
+    if (code.length < 8 || stage === 'verifying') return
     setStage('verifying')
     setErrorMsg('')
     const supabase = createClient()
@@ -78,10 +78,10 @@ function LoginForm() {
     setDigits(next)
     setErrorMsg('')
     if (digit && idx < 5) digitRefs.current[idx + 1]?.focus()
-    if (digit && idx === 5) {
+    if (digit && idx === 7) {
       // auto-submit when last digit filled
       const code = next.join('')
-      if (code.length === 6) handleCodeSubmit()
+      if (code.length === 8) handleCodeSubmit()
     }
   }
 
@@ -96,13 +96,13 @@ function LoginForm() {
 
   function handlePaste(e: React.ClipboardEvent) {
     e.preventDefault()
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    const next = ['', '', '', '', '', '']
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 8)
+    const next = ['', '', '', '', '', '', '', '']
     pasted.split('').forEach((d, i) => { next[i] = d })
     setDigits(next)
-    const focusIdx = Math.min(pasted.length, 5)
+    const focusIdx = Math.min(pasted.length, 7)
     digitRefs.current[focusIdx]?.focus()
-    if (pasted.length === 6) handleCodeSubmit()
+    if (pasted.length === 8) handleCodeSubmit()
   }
 
   async function handleResend() {
@@ -482,9 +482,9 @@ function LoginForm() {
                   {email}
                 </div>
 
-                {/* 6-digit boxes */}
-                <div className="flex items-center gap-2 mb-2" onPaste={handlePaste}>
-                  {[0, 1, 2].map(i => (
+                {/* 8-digit boxes: 4 · 4 */}
+                <div className="flex items-center gap-1.5 mb-2" onPaste={handlePaste}>
+                  {[0, 1, 2, 3].map(i => (
                     <input
                       key={i}
                       ref={el => { digitRefs.current[i] = el }}
@@ -497,17 +497,17 @@ function LoginForm() {
                       onKeyDown={e => handleDigitKeyDown(i, e)}
                       className="text-center outline-none transition-all"
                       style={{
-                        width: 40, height: 52, borderRadius: 10,
+                        width: 36, height: 50, borderRadius: 10,
                         border: `1px solid ${digits[i] ? '#E0533A' : '#D9CFB9'}`,
                         background: digits[i] ? '#fff' : '#FCF8EE',
                         fontFamily: '"Newsreader", serif', fontStyle: 'italic',
-                        fontSize: 28, color: '#1B1A18',
-                        boxShadow: digits[i] ? '0 0 0 4px rgba(224,83,58,0.12)' : 'none',
+                        fontSize: 26, color: '#1B1A18',
+                        boxShadow: digits[i] ? '0 0 0 3px rgba(224,83,58,0.12)' : 'none',
                       }}
                     />
                   ))}
-                  <span style={{ color: '#928873', fontSize: 22, padding: '0 2px' }}>·</span>
-                  {[3, 4, 5].map(i => (
+                  <span style={{ color: '#928873', fontSize: 20, padding: '0 1px' }}>·</span>
+                  {[4, 5, 6, 7].map(i => (
                     <input
                       key={i}
                       ref={el => { digitRefs.current[i] = el }}
@@ -519,12 +519,12 @@ function LoginForm() {
                       onKeyDown={e => handleDigitKeyDown(i, e)}
                       className="text-center outline-none transition-all"
                       style={{
-                        width: 40, height: 52, borderRadius: 10,
+                        width: 36, height: 50, borderRadius: 10,
                         border: `1px solid ${digits[i] ? '#E0533A' : '#D9CFB9'}`,
                         background: digits[i] ? '#fff' : '#FCF8EE',
                         fontFamily: '"Newsreader", serif', fontStyle: 'italic',
-                        fontSize: 28, color: '#1B1A18',
-                        boxShadow: digits[i] ? '0 0 0 4px rgba(224,83,58,0.12)' : 'none',
+                        fontSize: 26, color: '#1B1A18',
+                        boxShadow: digits[i] ? '0 0 0 3px rgba(224,83,58,0.12)' : 'none',
                       }}
                     />
                   ))}
@@ -546,11 +546,11 @@ function LoginForm() {
 
                 <button
                   onClick={() => handleCodeSubmit()}
-                  disabled={digits.join('').length < 6 || stage === 'verifying'}
+                  disabled={digits.join('').length < 8 || stage === 'verifying'}
                   className="flex items-center justify-center gap-2 font-semibold text-[15px] transition-all active:scale-[0.985] w-full max-w-xs"
                   style={{
                     height: 52, borderRadius: 14, marginTop: 6,
-                    background: digits.join('').length < 6 ? '#928873' : '#E0533A',
+                    background: digits.join('').length < 8 ? '#928873' : '#E0533A',
                     color: '#FCF8EE', border: 'none', opacity: stage === 'verifying' ? 0.7 : 1,
                   }}
                 >
@@ -561,7 +561,7 @@ function LoginForm() {
                   <button
                     className="font-mono text-[10.5px] uppercase tracking-[0.18em] font-medium"
                     style={{ color: '#E0533A', background: 'none', border: 'none', padding: '8px' }}
-                    onClick={() => { setDigits(['', '', '', '', '', '']); setStage('form'); setErrorMsg('') }}
+                    onClick={() => { setDigits(['', '', '', '', '', '', '', '']); setStage('form'); setErrorMsg('') }}
                   >
                     ↻ Use a different email
                   </button>
