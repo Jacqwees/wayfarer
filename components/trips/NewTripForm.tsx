@@ -3,7 +3,7 @@
 import { useState, useRef, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, ImagePlus, X, Loader2 } from 'lucide-react'
+import { MapPin, ImagePlus, X, Loader2 } from 'lucide-react'
 import Script from 'next/script'
 import { createTrip, getUploadUrl } from '@/app/actions/trips'
 
@@ -124,24 +124,20 @@ export default function NewTripForm() {
         transition={{ duration: 0.3 }}
         className="px-5 pt-14 pb-32 max-w-mobile mx-auto"
       >
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground mb-6 -ml-1">
-          <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm">Back</span>
-        </button>
-
-        <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em] mb-7">New trip</h1>
+        <div className="mb-7">
+          <p className="eyebrow mb-0.5">plan ahead</p>
+          <h1 className="font-display italic text-[32px] leading-tight tracking-[-0.01em]">New trip</h1>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Cover photo */}
           <div>
-            <label className="text-sm font-medium block mb-2">
-              Cover photo <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
+            <label className="eyebrow mb-1.5 block">Cover photo · optional</label>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="w-full h-40 rounded-lg border-2 border-dashed border-border relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-muted/30 active:scale-[0.99] transition-transform"
+              className="w-full h-44 rounded-xl border border-dashed border-border relative overflow-hidden flex flex-col items-center justify-center gap-2 bg-card active:scale-[0.99] transition-transform"
             >
               {coverUrl ? (
                 <>
@@ -170,7 +166,7 @@ export default function NewTripForm() {
 
           {/* Trip name */}
           <div>
-            <label className="text-sm font-medium block mb-1.5">Trip name</label>
+            <label className="eyebrow mb-1.5 block">Trip name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -182,7 +178,7 @@ export default function NewTripForm() {
 
           {/* Destination */}
           <div className="relative">
-            <label className="text-sm font-medium block mb-1.5">Destination</label>
+            <label className="eyebrow mb-1.5 block">Destination</label>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <input
@@ -194,13 +190,13 @@ export default function NewTripForm() {
               />
             </div>
             {suggestions.length > 0 && (
-              <div className="absolute z-20 top-full mt-2 w-full bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+              <div className="absolute z-20 top-full mt-2 w-full bg-card border border-border rounded-xl shadow-xl overflow-hidden">
                 {suggestions.slice(0, 5).map((s, i) => (
                   <button
                     key={s.place_id}
                     type="button"
                     onClick={() => selectSuggestion(s)}
-                    className={`w-full text-left px-4 py-3.5 text-sm hover:bg-muted active:bg-muted flex items-center gap-3 ${i < suggestions.length - 1 ? 'border-b border-border' : ''}`}
+                    className={`w-full text-left px-4 py-3.5 text-sm active:bg-muted flex items-center gap-3 ${i < suggestions.length - 1 ? 'border-b border-dashed border-border' : ''}`}
                   >
                     <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     {s.description}
@@ -218,7 +214,7 @@ export default function NewTripForm() {
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium block mb-1.5">Depart</label>
+              <label className="eyebrow mb-1.5 block">Depart</label>
               <input
                 type="date"
                 value={startDate}
@@ -229,7 +225,7 @@ export default function NewTripForm() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium block mb-1.5">Return</label>
+              <label className="eyebrow mb-1.5 block">Return</label>
               <input
                 type="date"
                 value={endDate}

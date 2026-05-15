@@ -31,12 +31,12 @@ export const CHANGELOG: ChangelogEntry[] = [
       {
         icon: '🌤️',
         title: 'Live weather on your dashboard',
-        body: 'See a 7-day forecast for your destination right on the trip dashboard. Powered by Open-Meteo — no API key, no nonsense.',
+        body: 'See a 7-day forecast for your destination right on the trip dashboard.',
       },
       {
         icon: '🌍',
-        title: 'Language-ready',
-        body: 'All text now lives in one file. French, Spanish, German — swap a single locale string and the entire app translates. More languages coming.',
+        title: 'Multiple languages — coming soon',
+        body: "The app is built and ready for multiple languages. English is live, French, Spanish, and German are next. Tell us which you want first and we'll prioritise it.",
       },
       {
         icon: '✈️',

@@ -10,6 +10,8 @@ export default function BottomNav({ unreadCount = 0 }: { unreadCount?: number })
   const pathname = usePathname()
   const t = useT()
 
+  if (pathname === '/whats-new') return null
+
   const tabs = [
     { href: '/trips', icon: Plane, label: t.nav.trips },
     { href: '/notifications', icon: Bell, label: t.nav.notifications },

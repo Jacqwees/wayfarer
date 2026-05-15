@@ -127,6 +127,28 @@ export default function WhatsNewPage() {
             <EntryCard entry={entry} isLatest={i === 0} />
           </motion.div>
         ))}
+
+        {/* Suggestions card */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 + CHANGELOG.length * 0.08 }}
+          className="rounded-3xl border border-dashed border-border bg-card/40 px-5 py-6 text-center"
+        >
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground mb-2">Your move</p>
+          <h3 className="font-display italic text-[22px] leading-tight tracking-[-0.01em] text-foreground mb-2">
+            What should we build next?
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+            Every request gets read. Tell us what&apos;s missing, broken, or would make this 10× better for your squad.
+          </p>
+          <a
+            href="mailto:hello@squadstay.co.uk?subject=Feature request"
+            className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-foreground text-background text-sm font-semibold active:scale-[0.98] transition-transform"
+          >
+            Send a request →
+          </a>
+        </motion.div>
       </div>
 
       {/* Sticky CTA */}
