@@ -63,17 +63,19 @@ export default async function TripPage({ params }: { params: { tripId: string } 
   const totalOwedToMe = (splitsOwedToMe ?? []).reduce((s, r) => s + (r.amount_owed ?? 0), 0)
   const netBalance = totalOwedToMe - totalOwed
 
-  // Live tile stats + weather — run in parallel
+  // Live tile stats + weather + first outbound flight — run in parallel
   const [
     { count: itineraryCount },
     { count: placesCount },
     { data: packingItems },
     weather,
+    { data: outboundFlight },
   ] = await Promise.all([
     supabase.from('itinerary_items').select('id', { count: 'exact', head: true }).eq('trip_id', params.tripId),
     supabase.from('places').select('id', { count: 'exact', head: true }).eq('trip_id', params.tripId),
     supabase.from('packing_items' as any).select('packed').eq('trip_id', params.tripId),
     fetchWeather(trip.destination_name, trip.start_date, trip.end_date),
+    supabase.from('flights').select('departure_datetime').eq('trip_id', params.tripId).eq('direction', 'outbound').order('departure_datetime', { ascending: true }).limit(1).maybeSingle(),
   ])
 
   const packingTotal = (packingItems as any[] | null)?.length ?? 0
@@ -89,6 +91,7 @@ export default async function TripPage({ params }: { params: { tripId: string } 
       userId={user.id}
       netBalance={netBalance}
       weather={weather}
+      departureDatetime={outboundFlight?.departure_datetime ?? null}
       stats={{
         itineraryCount: itineraryCount ?? 0,
         placesCount: placesCount ?? 0,

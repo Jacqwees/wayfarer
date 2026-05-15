@@ -43,7 +43,7 @@ function formatDateRange(start: string, end: string) {
 
 function pad(n: number) { return String(n).padStart(2, '0') }
 
-function useCountdown(startDate: string, endDate: string) {
+function useCountdown(startDate: string, endDate: string, departureDatetime: string | null) {
   const [, setTick] = useState(0)
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 1000)
@@ -51,19 +51,21 @@ function useCountdown(startDate: string, endDate: string) {
   }, [])
 
   const now = Date.now()
-  const s = new Date(startDate + 'T12:00:00').getTime()
-  const e = new Date(endDate + 'T12:00:00').getTime()
+  // Target: actual flight departure if known, otherwise midnight on start day
+  const target = departureDatetime
+    ? new Date(departureDatetime).getTime()
+    : new Date(startDate + 'T00:00:00').getTime()
+  const tripEnd = new Date(endDate + 'T23:59:59').getTime()
 
-  if (now > e) return { status: 'done' as const, days: 0, hms: '' }
-  if (now >= s) return { status: 'active' as const, days: 0, hms: '' }
+  if (now > tripEnd) return { status: 'done' as const, d: 0, h: 0, m: 0, hasFlight: !!departureDatetime }
+  if (now >= target) return { status: 'active' as const, d: 0, h: 0, m: 0, hasFlight: !!departureDatetime }
 
-  const diff = s - now
-  const totalSeconds = Math.floor(diff / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const mins = Math.floor((totalSeconds % 3600) / 60)
-  const secs = totalSeconds % 60
-  return { status: 'upcoming' as const, days, hms: `${pad(hours)}:${pad(mins)}:${pad(secs)}` }
+  const diff = target - now
+  const totalMins = Math.floor(diff / 60000)
+  const d = Math.floor(totalMins / 1440)
+  const h = Math.floor((totalMins % 1440) / 60)
+  const m = totalMins % 60
+  return { status: 'upcoming' as const, d, h, m, hasFlight: !!departureDatetime }
 }
 
 // ─── Member avatars ───────────────────────────────────────────────────────────
@@ -97,8 +99,8 @@ function MemberStack({ members, max = 5 }: { members: Member[]; max?: number }) 
 }
 
 // ─── Countdown ticker ─────────────────────────────────────────────────────────
-function CountdownTicker({ trip }: { trip: Trip }) {
-  const { status, days, hms } = useCountdown(trip.start_date, trip.end_date)
+function CountdownTicker({ trip, departureDatetime }: { trip: Trip; departureDatetime: string | null }) {
+  const { status, d, h, m, hasFlight } = useCountdown(trip.start_date, trip.end_date, departureDatetime)
 
   return (
     <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-3.5 flex items-center justify-between gap-4">
@@ -108,9 +110,7 @@ function CountdownTicker({ trip }: { trip: Trip }) {
             <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">Trip</p>
             <p className="font-display italic text-[22px] leading-none text-foreground">Complete</p>
           </div>
-          <span className="text-[11px] font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-            ✓ done
-          </span>
+          <span className="text-[11px] font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">✓ done</span>
         </>
       )}
       {status === 'active' && (
@@ -119,23 +119,34 @@ function CountdownTicker({ trip }: { trip: Trip }) {
             <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">Right now</p>
             <p className="font-display italic text-[22px] leading-none text-foreground">On trip 🎉</p>
           </div>
-          <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-            ● live
-          </span>
+          <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">● live</span>
         </>
       )}
       {status === 'upcoming' && (
         <>
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-0.5">Takeoff in</p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-display italic text-[32px] leading-none tracking-[-0.01em] text-foreground">{days}</span>
-              <span className="font-mono text-[11px] text-muted-foreground">days</span>
+            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground mb-1">
+              {hasFlight ? 'Flight departs in' : 'Trip starts in'}
+            </p>
+            <div className="flex items-baseline gap-3">
+              {d > 0 && (
+                <span className="flex items-baseline gap-1">
+                  <span className="font-display italic text-[28px] leading-none tracking-[-0.01em] text-foreground tabular-nums">{d}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground">d</span>
+                </span>
+              )}
+              <span className="flex items-baseline gap-1">
+                <span className="font-display italic text-[28px] leading-none tracking-[-0.01em] text-foreground tabular-nums">{h}</span>
+                <span className="font-mono text-[10px] text-muted-foreground">h</span>
+              </span>
+              <span className="flex items-baseline gap-1">
+                <span className="font-display italic text-[28px] leading-none tracking-[-0.01em] text-foreground tabular-nums">{m}</span>
+                <span className="font-mono text-[10px] text-muted-foreground">m</span>
+              </span>
             </div>
-            <p className="font-mono text-[13px] text-muted-foreground mt-0.5 tabular-nums">{hms}</p>
           </div>
           <span className="text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full shrink-0">
-            ● booked
+            {hasFlight ? '✈ flight' : '● booked'}
           </span>
         </>
       )}
@@ -197,11 +208,11 @@ type TileStats = {
 }
 
 export default function TripDashboard({
-  trip, role, members, permissions, unreadCount, userId, netBalance, stats, weather
+  trip, role, members, permissions, unreadCount, userId, netBalance, stats, weather, departureDatetime
 }: {
   trip: Trip; role: string; members: Member[]; permissions: any
   unreadCount: number; userId: string; netBalance: number
-  stats: TileStats; weather?: WeatherData | null
+  stats: TileStats; weather?: WeatherData | null; departureDatetime?: string | null
 }) {
   const router = useRouter()
   const canInvite = role === 'owner' || (role === 'member' && permissions?.members_can_invite)
@@ -295,7 +306,7 @@ export default function TripDashboard({
         <p className="font-semibold text-[15px] text-foreground">{trip.name}</p>
 
         {/* Countdown ticker */}
-        <CountdownTicker trip={trip} />
+        <CountdownTicker trip={trip} departureDatetime={departureDatetime ?? null} />
 
       </div>
 

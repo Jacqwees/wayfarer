@@ -53,7 +53,7 @@ export async function removePlace(tripId: string, placeId: string) {
   return { success: true }
 }
 
-export async function addPlaceToItinerary(tripId: string, placeId: string, date: string) {
+export async function addPlaceToItinerary(tripId: string, placeId: string, date: string, time?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
@@ -65,6 +65,7 @@ export async function addPlaceToItinerary(tripId: string, placeId: string, date:
   await db.from('itinerary_items').insert({
     trip_id: tripId,
     date,
+    time: time ?? null,
     title: place.name,
     lat: place.lat,
     lng: place.lng,

@@ -28,12 +28,18 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
   const [inviteLink, setInviteLink] = useState<string | null>(initialLink)
   const [linkCopied, setLinkCopied] = useState(false)
   const [generatingLink, setGeneratingLink] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
 
   async function handleGenerateLink() {
     setGeneratingLink(true)
+    setLinkError(null)
     const res = await generateInviteLink(tripId)
     setGeneratingLink(false)
-    if (res.url) setInviteLink(res.url)
+    if (res.url) {
+      setInviteLink(res.url)
+    } else {
+      setLinkError(res.error ?? 'Could not generate link')
+    }
   }
 
   async function handleCopyLink() {
@@ -184,11 +190,20 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
             </div>
           </div>
         ) : (
-          <button type="button" onClick={handleGenerateLink} disabled={generatingLink}
-            className="w-full h-12 rounded-xl border border-dashed border-border text-sm text-muted-foreground font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50">
-            {generatingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {generatingLink ? 'Generating…' : 'Generate invite link'}
-          </button>
+          <div className="space-y-2">
+            <button type="button" onClick={handleGenerateLink} disabled={generatingLink}
+              className="w-full h-12 rounded-xl border border-dashed border-border text-sm text-muted-foreground font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50">
+              {generatingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {generatingLink ? 'Generating…' : 'Generate invite link'}
+            </button>
+            {linkError && (
+              <div className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 px-4 py-3 text-xs text-destructive leading-relaxed">
+                <p className="font-semibold mb-1">Table not set up yet</p>
+                <p className="text-muted-foreground mb-2">Run this SQL in your Supabase dashboard → SQL Editor:</p>
+                <pre className="font-mono text-[10px] bg-background rounded-lg p-2 overflow-x-auto text-foreground whitespace-pre-wrap">{`create table trip_invite_links (\n  id uuid primary key default gen_random_uuid(),\n  trip_id uuid references trips(id) on delete cascade not null,\n  created_by uuid references users(id) on delete cascade not null,\n  role text not null default 'member',\n  created_at timestamptz default now() not null\n);`}</pre>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Pending invitations */}
