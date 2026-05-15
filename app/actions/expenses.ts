@@ -164,6 +164,30 @@ export async function disputeSplit(tripId: string, splitId: string) {
 
   const db = createServiceClient()
   await db.from('expense_splits').update({ status: 'disputed', disputed_at: new Date().toISOString() }).eq('id', splitId).eq('user_id', user.id)
+
+  // Notify the person who paid that their split has been disputed
+  const { data: split } = await db.from('expense_splits').select('expense_id').eq('id', splitId).single()
+  if (split) {
+    const { data: expense } = await db.from('expenses').select('paid_by, description').eq('id', split.expense_id).single()
+    if (expense && expense.paid_by !== user.id) {
+      const { data: profile } = await db.from('users').select('display_name').eq('id', user.id).single()
+      const { data: trip } = await db.from('trips').select('name').eq('id', tripId).single()
+      await db.from('notifications').insert({
+        user_id: expense.paid_by,
+        type: 'expense_disputed',
+        trip_id: tripId,
+        reference_id: splitId,
+        message: `${profile?.display_name ?? 'Someone'} disputed their share of "${expense.description}" in ${trip?.name}`,
+      })
+      sendPushToUser(expense.paid_by, {
+        title: 'Split disputed',
+        body: `${profile?.display_name ?? 'Someone'} disputed their share of "${expense.description}"`,
+        url: `/trips/${tripId}/expenses`,
+        tag: 'expense',
+      }).catch(() => {})
+    }
+  }
+
   revalidatePath(`/trips/${tripId}/expenses`)
   return { success: true }
 }

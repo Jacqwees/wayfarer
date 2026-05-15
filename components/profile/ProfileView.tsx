@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useTransition } from 'react'
+import { useState, useRef, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Script from 'next/script'
@@ -130,6 +130,7 @@ export default function ProfileView({
 
   const [editing, setEditing] = useState(false)
   const [showAppearance, setShowAppearance] = useState(false)
+  const [showNotifPrefs, setShowNotifPrefs] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [uploading, setUploading] = useState(false)
   const [validationError, setValidationError] = useState('')
@@ -559,7 +560,7 @@ export default function ProfileView({
               <p className="eyebrow mb-2.5 px-1">Settings</p>
               <div className="bg-card border border-border rounded-xl px-4">
                 <SettingsRow icon={Settings} label="Privacy" sub="What trip members can see" onClick={() => setEditing(true)} />
-                <SettingsRow icon={Bell} label="Notifications" sub="Push · email" />
+                <SettingsRow icon={Bell} label="Notifications" sub="Push · email" onClick={() => setShowNotifPrefs(true)} />
                 <SettingsRow icon={Moon} label="Appearance" sub="Auto · light · dark" onClick={() => setShowAppearance(true)} />
                 <SettingsRow icon={LogOut} label="Sign out" sub="See you soon" danger onClick={handleSignOut} />
               </div>
@@ -568,7 +569,120 @@ export default function ProfileView({
         </div>
 
         <AppearanceSheet open={showAppearance} onClose={() => setShowAppearance(false)} />
+        <NotificationsSheet open={showNotifPrefs} onClose={() => setShowNotifPrefs(false)} />
       </div>
     </>
+  )
+}
+
+function NotificationsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+    setPermission(Notification.permission)
+    if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => setSubscribed(!!sub)).catch(() => {})
+    }
+  }, [open])
+
+  async function handleEnable() {
+    if (!('Notification' in window)) return
+    setSubscribing(true)
+    const result = await Notification.requestPermission()
+    setPermission(result)
+    if (result === 'granted' && 'serviceWorker' in navigator) {
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (vapidKey) {
+        try {
+          const reg = await navigator.serviceWorker.ready
+          const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4)
+          const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/')
+          const raw = atob(base64)
+          const buf = new ArrayBuffer(raw.length)
+          const arr = new Uint8Array(buf)
+          for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
+          const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: buf })
+          const p256dh = sub.getKey('p256dh')
+          const auth = sub.getKey('auth')
+          if (p256dh && auth) {
+            const toBase64 = (b: ArrayBuffer) => { const bytes = new Uint8Array(b); let s = ''; for (let i = 0; i < bytes.byteLength; i++) s += String.fromCharCode(bytes[i]); return btoa(s) }
+            const { savePushSubscription } = await import('@/app/actions/push')
+            await savePushSubscription({ endpoint: sub.endpoint, keys: { p256dh: toBase64(p256dh), auth: toBase64(auth) } })
+          }
+          setSubscribed(true)
+        } catch { /* subscription failed */ }
+      }
+    }
+    setSubscribing(false)
+  }
+
+  const status = permission === 'granted' ? (subscribed ? 'active' : 'granted-no-sub') : permission
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-[70] flex items-end" onClick={onClose}>
+          <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            className="bg-card w-full rounded-t-[28px] px-6 pt-6 pb-10"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-6" />
+            <p className="eyebrow mb-1">Notifications</p>
+            <h2 className="font-display italic text-[22px] leading-tight tracking-[-0.01em] mb-5">Stay in the loop</h2>
+
+            <div className="bg-background border border-border rounded-xl px-4 py-4 mb-4">
+              <div className="flex items-start gap-3">
+                <Bell className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground mb-0.5">Push notifications</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Get notified when squad members add expenses, join trips, or update the plan.
+                  </p>
+                  <div className="mt-3">
+                    {status === 'active' && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Active
+                      </span>
+                    )}
+                    {status === 'granted-no-sub' && (
+                      <button onClick={handleEnable} disabled={subscribing}
+                        className="text-xs font-semibold text-primary">
+                        {subscribing ? 'Setting up…' : 'Finish setup →'}
+                      </button>
+                    )}
+                    {status === 'default' && (
+                      <button onClick={handleEnable} disabled={subscribing}
+                        className="h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50 active:scale-[0.97] transition-transform">
+                        {subscribing ? 'Enabling…' : 'Enable push notifications'}
+                      </button>
+                    )}
+                    {status === 'denied' && (
+                      <p className="text-xs text-muted-foreground">
+                        Notifications are blocked. Enable them in your device settings → Browser → Notifications.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-background border border-border rounded-xl px-4 py-4">
+              <div className="flex items-start gap-3">
+                <Bell className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground mb-0.5">Email</p>
+                  <p className="text-xs text-muted-foreground">Trip invitations are sent to your email. Sign-in codes also arrive by email.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
