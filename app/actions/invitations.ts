@@ -79,8 +79,9 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
       })()
     : null
 
+  let emailError: string | null = null
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: fromEmail,
       to: email,
       subject: `You're invited to ${trip?.name ?? 'a trip'} ✈️`,
@@ -120,7 +121,12 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
         </html>
       `,
     })
-  } catch { /* email failure is non-fatal */ }
+    if ('error' in result && result.error) {
+      emailError = (result.error as { message?: string }).message ?? 'Email delivery failed'
+    }
+  } catch (e: unknown) {
+    emailError = e instanceof Error ? e.message : 'Email delivery failed'
+  }
 
   // Notify existing members that an invitation was sent (informational — NOT the accept/decline type)
   const { data: members } = await db.from('trip_members').select('user_id').eq('trip_id', tripId)
@@ -140,7 +146,7 @@ export async function sendInvitation(tripId: string, email: string, role: 'membe
   }
 
   revalidatePath(`/trips/${tripId}/invite`)
-  return { success: true }
+  return { success: true, emailError }
 }
 
 export async function cancelInvitation(tripId: string, invitationId: string) {
@@ -228,16 +234,20 @@ export async function generateInviteLink(tripId: string, role: 'member' | 'viewe
     if (!perms?.members_can_invite) return { error: 'No permission to invite', url: null }
   }
 
-  // Replace any existing link for this trip
-  await db.from('trip_invite_links' as any).delete().eq('trip_id', tripId)
-  const { data: link, error } = await db.from('trip_invite_links' as any).insert({
-    trip_id: tripId, created_by: user.id, role,
+  // Reuse the invitations table — sentinel email marks this as a link invite
+  await db.from('invitations').delete().eq('trip_id', tripId).eq('invited_email', '__link__')
+  const { data: inv, error } = await db.from('invitations').insert({
+    trip_id: tripId,
+    invited_email: '__link__',
+    invited_role: role,
+    invited_by: user.id,
+    status: 'pending',
   }).select('id').single()
-  if (error || !link) return { error: error?.message ?? 'Failed to generate link', url: null }
+  if (error || !inv) return { error: error?.message ?? 'Failed to generate link', url: null }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://squadstay.co.uk'
   revalidatePath(`/trips/${tripId}/invite`)
-  return { error: null, url: `${appUrl}/join/${(link as any).id}` }
+  return { error: null, url: `${appUrl}/join/${inv.id}` }
 }
 
 export async function revokeInviteLink(tripId: string) {
@@ -246,7 +256,7 @@ export async function revokeInviteLink(tripId: string) {
   if (!user) return { error: 'Not authenticated' }
 
   const db = createServiceClient()
-  await db.from('trip_invite_links' as any).delete().eq('trip_id', tripId)
+  await db.from('invitations').delete().eq('trip_id', tripId).eq('invited_email', '__link__')
   revalidatePath(`/trips/${tripId}/invite`)
   return { success: true }
 }

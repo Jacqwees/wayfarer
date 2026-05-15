@@ -61,6 +61,9 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
     startTransition(async () => {
       const res = await sendInvitation(tripId, email.trim(), role)
       if (res.error) { setError(res.error); return }
+      if (res.emailError) {
+        setError(`Invitation saved but email failed to send: ${res.emailError}`)
+      }
       setSent(s => [...s, email.trim()])
       setPending(p => [...p, {
         id: Math.random().toString(),
@@ -195,11 +198,7 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
               {generatingLink ? 'Generating…' : 'Generate invite link'}
             </button>
             {linkError && (
-              <div className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 px-4 py-3 text-xs text-destructive leading-relaxed">
-                <p className="font-semibold mb-1">Table not set up yet</p>
-                <p className="text-muted-foreground mb-2">Run this SQL in your Supabase dashboard → SQL Editor:</p>
-                <pre className="font-mono text-[10px] bg-background rounded-lg p-2 overflow-x-auto text-foreground whitespace-pre-wrap">{`create table trip_invite_links (\n  id uuid primary key default gen_random_uuid(),\n  trip_id uuid references trips(id) on delete cascade not null,\n  created_by uuid references users(id) on delete cascade not null,\n  role text not null default 'member',\n  created_at timestamptz default now() not null\n);`}</pre>
-              </div>
+              <p className="text-xs text-destructive bg-destructive/10 rounded-xl px-4 py-3">{linkError}</p>
             )}
           </div>
         )}

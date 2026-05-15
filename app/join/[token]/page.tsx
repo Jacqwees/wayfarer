@@ -14,12 +14,16 @@ export default async function JoinPage({ params }: { params: { token: string } }
 
   const db = createServiceClient()
 
-  // Validate the token
-  const { data: link } = await db
-    .from('trip_invite_links' as any)
-    .select('trip_id, role')
+  // Validate the token — link invites are stored in the invitations table with sentinel email
+  const { data: linkInv } = await db
+    .from('invitations')
+    .select('trip_id, invited_role')
     .eq('id', params.token)
-    .maybeSingle() as { data: { trip_id: string; role: 'member' | 'viewer' } | null }
+    .eq('invited_email', '__link__')
+    .eq('status', 'pending')
+    .maybeSingle()
+
+  const link = linkInv ? { trip_id: linkInv.trip_id, role: linkInv.invited_role as 'member' | 'viewer' } : null
 
   if (!link) {
     return (
