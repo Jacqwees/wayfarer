@@ -9,14 +9,10 @@ import {
 } from 'lucide-react'
 import { updateProfile, updateAvatar, signOut } from '@/app/actions/profile'
 import { getUploadUrl } from '@/app/actions/trips'
+import { useT } from '@/lib/i18n'
+import AppearanceSheet from '@/components/shared/AppearanceSheet'
 
 type Visibility = 'trip' | 'friend' | 'private'
-
-const ALL_TAGS = [
-  'Adventure', 'Food & Drink', 'Mountains', 'Beach',
-  'Festivals', 'Culture', 'City Breaks', 'Backpacking',
-  'Nightlife', 'Luxury', 'Road Trips', 'Wellness',
-]
 
 function joinedLabel(createdAt: string | null) {
   if (!createdAt) return ''
@@ -60,7 +56,7 @@ function SettingsRow({
   )
 }
 
-function VisibilityBadge({ value, onChange }: { value: Visibility; onChange: (v: Visibility) => void }) {
+function VisibilityBadge({ value, onChange, tripLabel, privateLabel }: { value: Visibility; onChange: (v: Visibility) => void; tripLabel: string; privateLabel: string }) {
   return (
     <div className="flex gap-2 mt-1.5">
       {(['trip', 'private'] as Visibility[]).map(v => (
@@ -68,7 +64,7 @@ function VisibilityBadge({ value, onChange }: { value: Visibility; onChange: (v:
           key={v} type="button" onClick={() => onChange(v)}
           className={`flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors ${value === v ? 'bg-primary text-primary-foreground border-primary' : 'border-input text-muted-foreground bg-card'}`}
         >
-          {v === 'trip' ? 'Trip members' : 'Only me'}
+          {v === 'trip' ? tripLabel : privateLabel}
         </button>
       ))}
     </div>
@@ -93,7 +89,10 @@ export default function ProfileView({
   stats: Stats
 }) {
   const router = useRouter()
+  const t = useT()
+  const ALL_TAGS = t.profile.travelTags as unknown as string[]
   const [editing, setEditing] = useState(false)
+  const [showAppearance, setShowAppearance] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -182,8 +181,8 @@ export default function ProfileView({
           {isPending
             ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
             : editing
-              ? <><Check className="w-3.5 h-3.5" /> Save</>
-              : <><Pencil className="w-3.5 h-3.5" /> Edit</>}
+              ? <><Check className="w-3.5 h-3.5" /> {t.profile.saveProfile}</>
+              : <><Pencil className="w-3.5 h-3.5" /> {t.profile.editProfile}</>}
         </button>
 
         {/* Avatar */}
@@ -238,20 +237,20 @@ export default function ProfileView({
 
         {/* ── STATS ROW ─────────────────────────────────────── */}
         <div className="bg-card border border-border rounded-2xl flex overflow-hidden">
-          <StatCol num={stats.trips} label="Trips" />
+          <StatCol num={stats.trips} label={t.profile.stats.trips} />
           <StatDivider />
-          <StatCol num={stats.countries} label="Countries" />
+          <StatCol num={stats.countries} label={t.profile.stats.countries} />
           <StatDivider />
-          <StatCol num={stats.daysAway} label="Days away" />
+          <StatCol num={stats.daysAway} label={t.profile.stats.daysAway} />
           <StatDivider />
-          <StatCol num={stats.squad} label="Squad" />
+          <StatCol num={stats.squad} label={t.profile.stats.squad} />
         </div>
 
         {/* ── SPENDING ACROSS ALL TRIPS ─────────────────────── */}
         {stats.totalSpent > 0 && (
           <div className="bg-card border border-border rounded-2xl px-5 py-4 flex items-center justify-between">
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-0.5">Total spent across all trips</p>
+              <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-0.5">{t.profile.totalSpent}</p>
               <p className="font-display italic text-[26px] leading-none tracking-[-0.01em] text-foreground">
                 £{stats.totalSpent.toFixed(0)}
               </p>
@@ -262,7 +261,7 @@ export default function ProfileView({
 
         {/* ── TRAVEL STYLE TAGS ─────────────────────────────── */}
         <div>
-          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2.5 px-1">Travel style</p>
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2.5 px-1">{t.profile.travelStyle}</p>
           <AnimatePresence mode="wait">
             {editing ? (
               <motion.div key="edit-tags" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-wrap gap-2">
@@ -289,7 +288,7 @@ export default function ProfileView({
                     </span>
                   ))
                   : !editing && (
-                    <p className="text-sm text-muted-foreground px-1">No travel style set yet</p>
+                    <p className="text-sm text-muted-foreground px-1">{t.profile.noTravelStyle}</p>
                   )}
               </motion.div>
             )}
@@ -306,15 +305,15 @@ export default function ProfileView({
                 <textarea
                   value={form.bio}
                   onChange={e => update('bio', e.target.value)}
-                  placeholder="Write a short bio…"
+                  placeholder={t.profile.bioPlaceholder}
                   rows={2}
                   className="flex-1 bg-transparent text-sm outline-none resize-none placeholder:text-muted-foreground"
                 />
               ) : (
-                <span className="text-sm flex-1">{form.bio || <span className="text-muted-foreground">No bio yet</span>}</span>
+                <span className="text-sm flex-1">{form.bio || <span className="text-muted-foreground">{t.profile.noBio}</span>}</span>
               )}
             </div>
-            {editing && <VisibilityBadge value={form.bio_visibility} onChange={v => update('bio_visibility', v)} />}
+            {editing && <VisibilityBadge value={form.bio_visibility} onChange={v => update('bio_visibility', v)} tripLabel={t.profile.visibility.tripMembers} privateLabel={t.profile.visibility.onlyMe} />}
           </div>
 
           {/* Home city */}
@@ -325,14 +324,14 @@ export default function ProfileView({
                 <input
                   value={form.home_city}
                   onChange={e => update('home_city', e.target.value)}
-                  placeholder="Home city"
+                  placeholder={t.profile.homeCityPlaceholder}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
               ) : (
-                <span className="text-sm flex-1">{form.home_city || <span className="text-muted-foreground">No home city</span>}</span>
+                <span className="text-sm flex-1">{form.home_city || <span className="text-muted-foreground">{t.profile.noHomeCity}</span>}</span>
               )}
             </div>
-            {editing && <VisibilityBadge value={form.home_city_visibility} onChange={v => update('home_city_visibility', v)} />}
+            {editing && <VisibilityBadge value={form.home_city_visibility} onChange={v => update('home_city_visibility', v)} tripLabel={t.profile.visibility.tripMembers} privateLabel={t.profile.visibility.onlyMe} />}
           </div>
 
           {/* Phone */}
@@ -343,15 +342,15 @@ export default function ProfileView({
                 <input
                   value={form.phone}
                   onChange={e => update('phone', e.target.value)}
-                  placeholder="Phone number"
+                  placeholder={t.profile.phonePlaceholder}
                   type="tel"
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
               ) : (
-                <span className="text-sm flex-1">{form.phone || <span className="text-muted-foreground">No phone number</span>}</span>
+                <span className="text-sm flex-1">{form.phone || <span className="text-muted-foreground">{t.profile.noPhone}</span>}</span>
               )}
             </div>
-            {editing && <VisibilityBadge value={form.phone_visibility} onChange={v => update('phone_visibility', v)} />}
+            {editing && <VisibilityBadge value={form.phone_visibility} onChange={v => update('phone_visibility', v)} tripLabel={t.profile.visibility.tripMembers} privateLabel={t.profile.visibility.onlyMe} />}
           </div>
         </div>
 
@@ -360,35 +359,36 @@ export default function ProfileView({
             onClick={() => setEditing(false)}
             className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground"
           >
-            <X className="w-4 h-4" /> Cancel
+            <X className="w-4 h-4" /> {t.profile.cancelEdit}
           </button>
         )}
 
         {/* ── SETTINGS ──────────────────────────────────────── */}
         {!editing && (
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2 px-1">Settings</p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2 px-1">{t.profile.settings.heading}</p>
             <div className="bg-card border border-border rounded-2xl px-4">
               <SettingsRow
                 icon={Settings}
-                label="Profile · privacy"
-                sub="What trip members see"
+                label={t.profile.settings.privacyLabel}
+                sub={t.profile.settings.privacySub}
                 onClick={() => setEditing(true)}
               />
               <SettingsRow
                 icon={Bell}
-                label="Notifications"
-                sub="Push · email"
+                label={t.profile.settings.notificationsLabel}
+                sub={t.profile.settings.notificationsSub}
               />
               <SettingsRow
                 icon={Moon}
-                label="Appearance"
-                sub="Auto · light · dark"
+                label={t.profile.settings.appearanceLabel}
+                sub={t.profile.settings.appearanceSub}
+                onClick={() => setShowAppearance(true)}
               />
               <SettingsRow
                 icon={LogOut}
-                label="Sign out"
-                sub="See you soon"
+                label={t.profile.settings.signOut}
+                sub={t.profile.settings.signOutSub}
                 danger
                 onClick={handleSignOut}
               />
@@ -396,6 +396,8 @@ export default function ProfileView({
           </div>
         )}
       </div>
+
+      <AppearanceSheet open={showAppearance} onClose={() => setShowAppearance(false)} />
     </div>
   )
 }

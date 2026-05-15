@@ -4,15 +4,17 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Plane, Bell, User } from 'lucide-react'
 import { motion } from 'framer-motion'
-
-const tabs = [
-  { href: '/trips', icon: Plane, label: 'Trips' },
-  { href: '/notifications', icon: Bell, label: 'Notify' },
-  { href: '/profile', icon: User, label: 'Profile' },
-]
+import { useT } from '@/lib/i18n'
 
 export default function BottomNav({ unreadCount = 0 }: { unreadCount?: number }) {
   const pathname = usePathname()
+  const t = useT()
+
+  const tabs = [
+    { href: '/trips', icon: Plane, label: t.nav.trips },
+    { href: '/notifications', icon: Bell, label: t.nav.notifications },
+    { href: '/profile', icon: User, label: t.nav.profile },
+  ]
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">

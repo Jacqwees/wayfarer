@@ -8,6 +8,8 @@ import {
   ChevronLeft, Plane, Hotel, CalendarDays, MapPin,
   Wallet, Users, Bell, UserPlus, Settings, PackageCheck
 } from 'lucide-react'
+import WeatherStrip from '@/components/trips/WeatherStrip'
+import type { WeatherData } from '@/lib/weather'
 
 // ─── Gradients ────────────────────────────────────────────────────────────────
 const GRADIENTS = [
@@ -195,11 +197,11 @@ type TileStats = {
 }
 
 export default function TripDashboard({
-  trip, role, members, permissions, unreadCount, userId, netBalance, stats
+  trip, role, members, permissions, unreadCount, userId, netBalance, stats, weather
 }: {
   trip: Trip; role: string; members: Member[]; permissions: any
   unreadCount: number; userId: string; netBalance: number
-  stats: TileStats
+  stats: TileStats; weather?: WeatherData | null
 }) {
   const router = useRouter()
   const canInvite = role === 'owner' || (role === 'member' && permissions?.members_can_invite)
@@ -294,6 +296,21 @@ export default function TripDashboard({
 
         {/* Countdown ticker */}
         <CountdownTicker trip={trip} />
+
+      </div>
+
+      {/* Weather strip — rendered outside the padded area so it spans full width internally */}
+      {weather && weather.days.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+        >
+          <WeatherStrip weather={weather} />
+        </motion.div>
+      )}
+
+      <div className="px-4 space-y-3">
 
         {/* Tile grid */}
         <div className="grid grid-cols-2 gap-2.5 pt-1">

@@ -3,9 +3,8 @@ import { Newsreader } from 'next/font/google'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+import { ThemeProvider, THEME_SCRIPT } from '@/components/shared/ThemeProvider'
 
-// Geist + Geist Mono come from the 'geist' package (Vercel fonts, not Google Fonts)
-// Their CSS variables are --font-geist-sans and --font-geist-mono by default
 const display = Newsreader({
   subsets: ['latin'],
   weight: ['400', '500'],
@@ -41,8 +40,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${display.variable}`}>
+      {/* Prevent flash of wrong theme — runs before React hydrates */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="font-sans antialiased bg-background text-foreground">
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

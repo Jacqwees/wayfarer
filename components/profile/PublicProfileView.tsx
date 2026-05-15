@@ -1,8 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, MapPin, FileText } from 'lucide-react'
+import { ChevronLeft, FileText } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useT } from '@/lib/i18n'
 
 function joinedLabel(createdAt: string | null) {
   if (!createdAt) return ''
@@ -33,6 +34,7 @@ export default function PublicProfileView({
   stats: PublicStats
 }) {
   const router = useRouter()
+  const t = useT()
 
   const eyebrow = [
     visibleHomeCity,
@@ -47,7 +49,7 @@ export default function PublicProfileView({
       {/* Back */}
       <div className="px-5 pt-14 pb-2">
         <button onClick={() => router.back()} className="flex items-center gap-1 text-muted-foreground -ml-1">
-          <ChevronLeft className="w-5 h-5" /><span className="text-sm">Back</span>
+          <ChevronLeft className="w-5 h-5" /><span className="text-sm">{t.common.back}</span>
         </button>
       </div>
 
@@ -76,13 +78,13 @@ export default function PublicProfileView({
       <div className="px-4 space-y-4">
         {/* Stats row */}
         <div className="bg-card border border-border rounded-2xl flex overflow-hidden">
-          <StatCol num={stats.trips} label="Trips" />
+          <StatCol num={stats.trips} label={t.profile.stats.trips} />
           <div className="w-px bg-border my-2" />
-          <StatCol num={stats.countries} label="Countries" />
+          <StatCol num={stats.countries} label={t.profile.stats.countries} />
           <div className="w-px bg-border my-2" />
-          <StatCol num={stats.daysAway} label="Days away" />
+          <StatCol num={stats.daysAway} label={t.profile.stats.daysAway} />
           <div className="w-px bg-border my-2" />
-          <StatCol num={stats.squad} label="Squad" />
+          <StatCol num={stats.squad} label={t.profile.stats.squad} />
         </div>
 
         {/* Bio */}
@@ -98,7 +100,7 @@ export default function PublicProfileView({
         {/* Travel tags */}
         {(profile as any).travel_tags?.length > 0 && (
           <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2.5 px-1">Travel style</p>
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted-foreground mb-2.5 px-1">{t.profile.travelStyle}</p>
             <div className="flex flex-wrap gap-2">
               {((profile as any).travel_tags as string[]).map(tag => (
                 <span key={tag} className="text-[12px] font-medium px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
