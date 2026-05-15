@@ -87,7 +87,7 @@ export default function OnboardingFlow({
       phone: data.phone.trim() || null,
       bio: data.bio.trim() || null,
       home_city: data.home_city.trim() || null,
-      // @ts-ignore — travel_tags column exists but supabase types may not reflect it
+      // @ts-expect-error — travel_tags column exists but supabase types may not reflect it
       travel_tags: data.travel_tags.length > 0 ? data.travel_tags : null,
       onboarding_complete: true,
     }).eq('id', userId)
