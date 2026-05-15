@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Pencil, Trash2, X, Loader2, MapPin, ExternalLink } from 'lucide-react'
 import Script from 'next/script'
@@ -23,6 +22,8 @@ type Props = {
   tripId: string
   hotels: HotelRow[]
   canEdit: boolean
+  tripStart: string
+  tripEnd: string
 }
 
 const emptyForm = {
@@ -147,8 +148,7 @@ function HotelCard({ h, canEdit, onEdit, onDelete }: {
   )
 }
 
-export default function HotelView({ tripId, hotels, canEdit }: Props) {
-  const router = useRouter()
+export default function HotelView({ tripId, hotels, canEdit, tripStart, tripEnd }: Props) {
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState<(typeof emptyForm & { id?: string }) | null>(null)
   const [error, setError] = useState('')
@@ -163,7 +163,13 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
         const place = ac.getPlace()
         const lat = place.geometry?.location?.lat() ?? null
         const lng = place.geometry?.location?.lng() ?? null
-        setForm(f => f && ({ ...f, address: place.formatted_address ?? f.address, lat, lng }))
+        setForm(f => f && ({
+          ...f,
+          address: place.formatted_address ?? f.address,
+          name: f.name || place.name || f.name,
+          lat,
+          lng,
+        }))
       })
       ;(window as any).__hotelAC = true
     }
@@ -185,6 +191,22 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
     e.preventDefault()
     if (!form) return
     setError('')
+
+    if (form.check_out_date && form.check_in_date && form.check_out_date <= form.check_in_date) {
+      setError('Check-out must be after check-in')
+      return
+    }
+    if (tripStart && form.check_in_date && form.check_in_date < tripStart) {
+      const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      setError(`Check-in can't be before your trip starts (${fmt(tripStart)})`)
+      return
+    }
+    if (tripEnd && form.check_out_date && form.check_out_date > tripEnd) {
+      const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      setError(`Check-out can't be after your trip ends (${fmt(tripEnd)})`)
+      return
+    }
+
     startTransition(async () => {
       const res = await saveHotel(tripId, form)
       if (res.error) { setError(res.error); return }
@@ -286,12 +308,23 @@ export default function HotelView({ tripId, hotels, canEdit }: Props) {
                     <div>
                       <label className="eyebrow mb-1.5 block">Check-in</label>
                       <input required type="date" value={form.check_in_date}
-                        onChange={e => setForm(f => f && ({ ...f, check_in_date: e.target.value }))}
+                        min={tripStart || undefined}
+                        max={tripEnd || undefined}
+                        onChange={e => {
+                          const ci = e.target.value
+                          setForm(f => f && ({
+                            ...f,
+                            check_in_date: ci,
+                            check_out_date: f.check_out_date && f.check_out_date <= ci ? '' : f.check_out_date,
+                          }))
+                        }}
                         className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                     </div>
                     <div>
                       <label className="eyebrow mb-1.5 block">Check-out</label>
                       <input required type="date" value={form.check_out_date}
+                        min={form.check_in_date || tripStart || undefined}
+                        max={tripEnd || undefined}
                         onChange={e => setForm(f => f && ({ ...f, check_out_date: e.target.value }))}
                         className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                     </div>

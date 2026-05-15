@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plane, Plus, Pencil, Trash2, X, Loader2 } from 'lucide-react'
-import { saveFlight, deleteFlight } from '@/app/actions/flights'
+import { Plane, Plus, Pencil, Trash2, X, Loader2, Search } from 'lucide-react'
+import { saveFlight, deleteFlight, lookupFlightNumber } from '@/app/actions/flights'
 import AirportInput from '@/components/shared/AirportInput'
 import { useT } from '@/lib/i18n'
 
@@ -25,6 +24,8 @@ type Props = {
   tripId: string
   flights: Flight[]
   canEdit: boolean
+  tripStart: string
+  tripEnd: string
 }
 
 const empty = {
@@ -139,13 +140,14 @@ function BoardingPassCard({ f, canEdit, onEdit, onDelete }: {
   )
 }
 
-export default function FlightsView({ tripId, flights, canEdit }: Props) {
-  const router = useRouter()
+export default function FlightsView({ tripId, flights, canEdit, tripStart, tripEnd }: Props) {
   const t = useT()
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState<(typeof empty & { id?: string }) | null>(null)
   const [error, setError] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [lookingUp, setLookingUp] = useState(false)
+  const [lookupMsg, setLookupMsg] = useState('')
 
   const outbound = flights.filter(f => f.direction === 'outbound')
   const returnFlight = flights.filter(f => f.direction === 'return')
@@ -153,6 +155,7 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
   function openAdd(direction: 'outbound' | 'return') {
     setForm({ ...empty, direction })
     setError('')
+    setLookupMsg('')
   }
 
   function openEdit(f: Flight) {
@@ -169,12 +172,53 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
       notes: f.notes ?? '',
     })
     setError('')
+    setLookupMsg('')
+  }
+
+  async function handleLookup() {
+    if (!form?.flight_number?.trim()) return
+    setLookingUp(true)
+    setLookupMsg('')
+    setError('')
+    const res = await lookupFlightNumber(form.flight_number.trim())
+    setLookingUp(false)
+    if (res.error === 'no_key') {
+      setLookupMsg('Add AVIATIONSTACK_API_KEY to env to enable lookup')
+    } else if (res.error === 'not_found') {
+      setLookupMsg('Flight not found — check the number and try again')
+    } else if (res.error) {
+      setLookupMsg('Lookup failed')
+    } else if (res.data) {
+      setForm(f => f && ({
+        ...f,
+        departure_airport: res.data!.departure_airport ?? f.departure_airport,
+        arrival_airport: res.data!.arrival_airport ?? f.arrival_airport,
+        airline: res.data!.airline ?? f.airline,
+      }))
+      setLookupMsg('Airports and airline filled in ✓')
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form) return
     setError('')
+
+    const dep = new Date(form.departure_datetime)
+    const arr = new Date(form.arrival_datetime)
+    const tripStartDt = new Date(tripStart + 'T00:00')
+    const tripEndDt = new Date(tripEnd + 'T23:59')
+
+    if (arr <= dep) {
+      setError('Arrival time must be after departure time')
+      return
+    }
+    if (dep < tripStartDt || dep > tripEndDt) {
+      const fmt = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      setError(`Departure must be within your trip (${fmt(tripStart)} – ${fmt(tripEnd)})`)
+      return
+    }
+
     startTransition(async () => {
       const res = await saveFlight(tripId, {
         ...form,
@@ -290,6 +334,8 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
                 <div>
                   <label className="eyebrow mb-1.5 block">Departure</label>
                   <input required type="datetime-local" value={form.departure_datetime}
+                    min={tripStart ? `${tripStart}T00:00` : undefined}
+                    max={tripEnd ? `${tripEnd}T23:59` : undefined}
                     onChange={e => setForm(f => f && ({ ...f, departure_datetime: e.target.value }))}
                     className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                 </div>
@@ -297,6 +343,8 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
                 <div>
                   <label className="eyebrow mb-1.5 block">Arrival</label>
                   <input required type="datetime-local" value={form.arrival_datetime}
+                    min={form.departure_datetime || (tripStart ? `${tripStart}T00:00` : undefined)}
+                    max={tripEnd ? `${tripEnd}T23:59` : undefined}
                     onChange={e => setForm(f => f && ({ ...f, arrival_datetime: e.target.value }))}
                     className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
                 </div>
@@ -310,9 +358,19 @@ export default function FlightsView({ tripId, flights, canEdit }: Props) {
                   </div>
                   <div>
                     <label className="eyebrow mb-1.5 block">Flight no.</label>
-                    <input value={form.flight_number} onChange={e => setForm(f => f && ({ ...f, flight_number: e.target.value }))}
-                      placeholder="BA 532"
-                      className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                    <div className="flex gap-2">
+                      <input value={form.flight_number} onChange={e => { setForm(f => f && ({ ...f, flight_number: e.target.value })); setLookupMsg('') }}
+                        placeholder="BA532"
+                        className="flex-1 h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                      <button type="button" onClick={handleLookup} disabled={!form.flight_number?.trim() || lookingUp}
+                        className="h-12 px-3 rounded-xl border border-border bg-card text-muted-foreground flex items-center gap-1.5 text-xs font-medium disabled:opacity-40 active:scale-[0.97] transition-transform shrink-0">
+                        {lookingUp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                        Look up
+                      </button>
+                    </div>
+                    {lookupMsg && (
+                      <p className={`text-[11px] mt-1.5 px-1 ${lookupMsg.includes('✓') ? 'text-emerald-600' : 'text-muted-foreground'}`}>{lookupMsg}</p>
+                    )}
                   </div>
                 </div>
 

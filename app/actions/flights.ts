@@ -66,3 +66,29 @@ export async function deleteFlight(tripId: string, flightId: string) {
   revalidatePath(`/trips/${tripId}/flights`)
   return { success: true }
 }
+
+export async function lookupFlightNumber(flightNumber: string) {
+  const key = process.env.AVIATIONSTACK_API_KEY
+  if (!key) return { error: 'no_key' as const, data: null }
+
+  const iata = flightNumber.replace(/\s+/g, '').toUpperCase()
+  try {
+    const res = await fetch(
+      `http://api.aviationstack.com/v1/flights?access_key=${key}&flight_iata=${iata}&limit=1`,
+      { next: { revalidate: 3600 } }
+    )
+    const json = await res.json()
+    const f = json.data?.[0]
+    if (!f) return { error: 'not_found' as const, data: null }
+    return {
+      error: null,
+      data: {
+        departure_airport: (f.departure?.iata as string) ?? null,
+        arrival_airport: (f.arrival?.iata as string) ?? null,
+        airline: (f.airline?.name as string) ?? null,
+      },
+    }
+  } catch {
+    return { error: 'failed' as const, data: null }
+  }
+}

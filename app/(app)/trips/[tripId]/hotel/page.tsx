@@ -11,13 +11,20 @@ export default async function HotelPage({ params }: { params: { tripId: string }
     .from('trip_members').select('role').eq('trip_id', params.tripId).eq('user_id', user.id).single()
   if (!membership) notFound()
 
-  const { data: hotels } = await supabase
-    .from('hotels')
-    .select('*')
-    .eq('trip_id', params.tripId)
-    .order('check_in_date')
+  const [{ data: hotels }, { data: trip }] = await Promise.all([
+    supabase.from('hotels').select('*').eq('trip_id', params.tripId).order('check_in_date'),
+    supabase.from('trips').select('start_date, end_date').eq('id', params.tripId).single(),
+  ])
 
   const canEdit = membership.role === 'owner' || membership.role === 'member'
 
-  return <HotelView tripId={params.tripId} hotels={hotels ?? []} canEdit={canEdit} />
+  return (
+    <HotelView
+      tripId={params.tripId}
+      hotels={hotels ?? []}
+      canEdit={canEdit}
+      tripStart={trip?.start_date ?? ''}
+      tripEnd={trip?.end_date ?? ''}
+    />
+  )
 }
