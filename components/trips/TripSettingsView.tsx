@@ -99,9 +99,9 @@ export default function TripSettingsView({ trip, isOwner }: { trip: Trip; isOwne
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
         onLoad={() => setMapsReady(true)}
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
 
       <motion.div

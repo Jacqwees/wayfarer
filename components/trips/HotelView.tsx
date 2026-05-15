@@ -222,9 +222,9 @@ export default function HotelView({ tripId, hotels, canEdit, tripStart, tripEnd 
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&loading=async`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
         onLoad={() => setMapsReady(true)}
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
 
       <motion.div
