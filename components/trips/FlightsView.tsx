@@ -358,16 +358,14 @@ export default function FlightsView({ tripId, flights, canEdit, tripStart, tripE
                   </div>
                   <div>
                     <label className="eyebrow mb-1.5 block">Flight no.</label>
-                    <div className="flex gap-2">
-                      <input value={form.flight_number} onChange={e => { setForm(f => f && ({ ...f, flight_number: e.target.value })); setLookupMsg('') }}
-                        placeholder="BA532"
-                        className="flex-1 h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
-                      <button type="button" onClick={handleLookup} disabled={!form.flight_number?.trim() || lookingUp}
-                        className="h-12 px-3 rounded-xl border border-border bg-card text-muted-foreground flex items-center gap-1.5 text-xs font-medium disabled:opacity-40 active:scale-[0.97] transition-transform shrink-0">
-                        {lookingUp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                        Look up
-                      </button>
-                    </div>
+                    <input value={form.flight_number} onChange={e => { setForm(f => f && ({ ...f, flight_number: e.target.value })); setLookupMsg('') }}
+                      placeholder="BA532"
+                      className="w-full h-12 px-4 rounded-xl border border-input bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm font-mono" />
+                    <button type="button" onClick={handleLookup} disabled={!form.flight_number?.trim() || lookingUp}
+                      className="mt-2 w-full h-10 rounded-xl border border-dashed border-border bg-card text-muted-foreground flex items-center justify-center gap-1.5 text-xs font-medium disabled:opacity-40 active:scale-[0.98] transition-transform">
+                      {lookingUp ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                      {lookingUp ? 'Looking up…' : 'Auto-fill airports from flight number'}
+                    </button>
                     {lookupMsg && (
                       <p className={`text-[11px] mt-1.5 px-1 ${lookupMsg.includes('✓') ? 'text-emerald-600' : 'text-muted-foreground'}`}>{lookupMsg}</p>
                     )}
