@@ -1,0 +1,1436 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#F4EDE0" />
+<title>SquadStay — Plan group trips, together.</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" />
+
+<style>
+  /* ===== Voyage Press tokens ===== */
+  :root {
+    --ink: #1B1A18;
+    --ink-soft: #5C544A;
+    --ink-mute: #928873;
+    --paper: #F4EDE0;
+    --paper-alt: #EBE2D1;
+    --paper-deep: #E2D8C3;
+    --card: #FCF8EE;
+    --card-alt: #F7F0E1;
+    --line: #D9CFB9;
+    --line-soft: #E5DCC7;
+    --primary: #E0533A;
+    --primary-deep: #A53A26;
+    --primary-soft: #F2C2B4;
+    --pink: #E89AAE;
+    --sage: #5B7556;
+    --amber: #D9923B;
+    --sky: #6FA4C2;
+    --plum: #5E3A6E;
+
+    --font-display: "Newsreader", "Times New Roman", serif;
+    --font-body: "Geist", system-ui, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, monospace;
+
+    --g-lisbon:    radial-gradient(120% 80% at 30% 110%, #FFB766 0%, #E8754A 28%, #B33E4F 55%, #4A1F4C 85%);
+    --g-kyoto:     radial-gradient(120% 90% at 70% 0%, #F4B5C8 0%, #C26F8B 30%, #5E3A6E 60%, #1D1B3A 90%);
+    --g-amalfi:    radial-gradient(110% 90% at 50% 100%, #FFE7B0 0%, #F5A35E 25%, #D9494B 55%, #1C3C5A 92%);
+    --g-tulum:     radial-gradient(120% 90% at 30% 0%, #C9F0E0 0%, #6FC8B2 25%, #3F6D88 55%, #1A2B45 92%);
+    --g-iceland:   radial-gradient(120% 90% at 70% 90%, #C8E1E5 0%, #6797A8 28%, #3A4C66 60%, #1B2438 92%);
+    --g-marrakech: radial-gradient(120% 90% at 50% 50%, #FFC58A 0%, #E07A3C 30%, #8B2F2A 60%, #2D1414 92%);
+    --g-bali:      radial-gradient(120% 90% at 60% 90%, #F5E2A8 0%, #7BB28F 30%, #2D6B6B 60%, #16363B 92%);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  html {
+    /* Cinematic canvas for desktop preview */
+    background: #2A2419;
+  }
+  body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+    position: relative;
+    min-height: 100vh;
+    box-shadow: 0 0 80px rgba(0,0,0,0.3);
+  }
+  ::selection { background: var(--primary); color: var(--card); }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+  /* ===== Atoms ===== */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .ital { font-family: var(--font-display); font-style: italic; font-weight: 400; letter-spacing: -0.015em; }
+  .wrap { padding: 0 24px; }
+
+  /* ===== Nav ===== */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(244, 237, 224, 0.9);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-body); font-weight: 700; font-size: 19px;
+    letter-spacing: -0.03em; color: var(--ink);
+  }
+  .brand-stamp {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--ink);
+    color: var(--card); display: grid; place-items: center;
+    font-family: var(--font-display); font-style: italic; font-size: 16px;
+    line-height: 1;
+  }
+  .brand .accent { color: var(--primary); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 18px; border-radius: 999px;
+    font-weight: 600; font-size: 14px;
+    transition: transform .15s ease, background .15s ease, color .15s ease;
+    cursor: pointer;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--primary); color: var(--card); }
+  .btn-primary:active { background: var(--primary-deep); }
+  .btn-ghost {
+    background: var(--card); color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-block { width: 100%; padding: 16px; font-size: 15px; }
+
+  /* ===== Hero ===== */
+  .hero { padding: 28px 0 36px; position: relative; }
+  .hero-eyebrow-row {
+    display: flex; align-items: center; gap: 12px;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+  .hero-eyebrow-row .line { flex: 1; max-width: 40px; height: 1px; background: var(--line); }
+  .hero-dots { display: inline-flex; gap: 4px; }
+  .hero-dots span { width: 6px; height: 6px; border-radius: 50%; }
+  .hero-dots span:nth-child(1) { background: var(--primary); }
+  .hero-dots span:nth-child(2) { background: var(--amber); }
+  .hero-dots span:nth-child(3) { background: var(--sage); }
+  .hero-dots span:nth-child(4) { background: var(--sky); }
+  .hero-dots span:nth-child(5) { background: var(--pink); }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-style: italic;
+    font-size: 48px;
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    margin: 0 0 18px;
+    color: var(--ink);
+    text-wrap: balance;
+    padding: 0 24px;
+  }
+  .hero h1 .coral { color: var(--primary); }
+
+  .hero p.lead {
+    font-size: 15.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 24px;
+    padding: 0 24px;
+    text-wrap: pretty;
+  }
+  .hero-ctas {
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 0 24px; margin-bottom: 18px;
+  }
+  .hero-meta {
+    display: flex; gap: 14px; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--ink-mute); letter-spacing: 0.1em;
+    padding: 0 24px; flex-wrap: wrap;
+  }
+  .hero-meta .mdot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-mute); }
+
+  /* ===== Hero postcard stack ===== */
+  .stack-wrap {
+    position: relative;
+    height: 360px;
+    margin: 36px 0 28px;
+    overflow: hidden;
+    padding: 0 24px;
+  }
+  .stack {
+    position: relative;
+    width: 100%; height: 100%;
+  }
+  .pc {
+    position: absolute;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 22px 40px -18px rgba(40, 20, 0, 0.32),
+                0 4px 10px -4px rgba(40, 20, 0, 0.12);
+    overflow: hidden;
+    width: 78%;
+  }
+  .pc .photo { width: 100%; aspect-ratio: 4 / 3; position: relative; }
+  .pc .caption {
+    padding: 11px 14px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .pc .cap-name {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 19px; letter-spacing: -0.015em; color: var(--ink);
+  }
+  .pc .cap-meta {
+    font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.18em;
+    color: var(--ink-mute); text-transform: uppercase;
+  }
+  .stamp-on-card {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em;
+    color: var(--ink); text-transform: uppercase; font-weight: 500;
+  }
+  .pc-1 { top: 0;     left: 8%;  transform: rotate(-5deg); z-index: 1; }
+  .pc-2 { top: 6%;    right: 5%; transform: rotate(4deg);  z-index: 2; }
+  .pc-3 { top: 28%;   left: 2%;  transform: rotate(-2deg); z-index: 3; }
+
+  /* floating accents */
+  .squad-chip {
+    position: absolute;
+    bottom: 8%; left: 50%; transform: translateX(-50%);
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 14px 6px 6px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 14px 22px -8px rgba(60,40,20,0.25);
+    z-index: 6;
+  }
+  .squad-chip .ava { display: flex; }
+  .squad-chip .ava span {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--card);
+    margin-left: -8px;
+    display: grid; place-items: center;
+    font-family: var(--font-body); font-size: 10px; font-weight: 600;
+    color: var(--card);
+  }
+  .squad-chip .ava span:first-child { margin-left: 0; }
+  .squad-chip .label {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.08em; color: var(--ink-soft);
+  }
+  .squad-chip .label b { color: var(--ink); font-weight: 600; }
+
+  .price-stamp {
+    position: absolute;
+    top: 50%; right: 8%;
+    background: var(--ink); color: var(--card);
+    padding: 10px 14px; border-radius: 6px;
+    transform: rotate(8deg);
+    box-shadow: 0 12px 22px -8px rgba(0,0,0,0.4);
+    z-index: 7;
+  }
+  .price-stamp .ps-eye {
+    font-family: var(--font-mono); font-size: 8px;
+    letter-spacing: 0.22em; opacity: 0.65; text-transform: uppercase;
+  }
+  .price-stamp .ps-big {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 22px; letter-spacing: -0.01em; line-height: 1;
+    margin-top: 2px;
+  }
+  .price-stamp .ps-sub {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.08em; opacity: 0.7; margin-top: 4px;
+  }
+
+  /* ===== Marquee ===== */
+  .marquee {
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--paper-alt);
+    padding: 14px 0;
+    overflow: hidden;
+  }
+  .marquee-track {
+    display: flex; gap: 40px; white-space: nowrap;
+    animation: marquee 50s linear infinite;
+    font-family: var(--font-display); font-style: italic;
+    font-size: 20px; color: var(--ink); letter-spacing: -0.01em;
+  }
+  .marquee-track span { display: inline-flex; align-items: center; gap: 40px; }
+  .marquee-track .star {
+    color: var(--primary); font-family: var(--font-body); font-style: normal;
+    font-size: 11px;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* ===== Section frame ===== */
+  section { padding: 64px 0; position: relative; }
+  .section-head {
+    padding: 0 24px; margin-bottom: 32px;
+  }
+  .section-head .eyebrow {
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: 36px; line-height: 1.0;
+    letter-spacing: -0.025em; margin: 0 0 14px; color: var(--ink);
+    text-wrap: balance;
+  }
+  .section-sub {
+    color: var(--ink-soft); font-size: 15px; line-height: 1.5; margin: 0;
+    text-wrap: pretty;
+  }
+
+  /* ===== Showcase ===== */
+  .showcase {
+    background: var(--paper-alt);
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .ph-shell {
+    display: flex; justify-content: center;
+    padding: 32px 24px 0;
+  }
+  .phone {
+    position: relative;
+    width: 280px; height: 580px;
+    background: var(--ink);
+    border-radius: 40px;
+    padding: 10px;
+    box-shadow:
+      0 50px 80px -30px rgba(40, 20, 0, 0.4),
+      0 14px 28px -10px rgba(40, 20, 0, 0.2),
+      inset 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .phone::before {
+    content: ""; position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    width: 80px; height: 22px; background: var(--ink); border-radius: 16px; z-index: 3;
+  }
+  .phone-screen {
+    width: 100%; height: 100%; border-radius: 32px;
+    background: var(--paper); overflow: hidden;
+    position: relative;
+  }
+  .ph-status {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px 4px;
+    font-family: var(--font-body); font-size: 11px; font-weight: 600;
+  }
+  .ph-status .ind { display: flex; gap: 4px; align-items: center; }
+  .ph-header { padding: 24px 20px 14px; }
+  .ph-eye {
+    font-family: var(--font-mono); font-size: 8px;
+    letter-spacing: 0.22em; color: var(--ink-mute);
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .ph-title {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 26px; letter-spacing: -0.02em;
+    line-height: 1; color: var(--ink);
+  }
+  .ph-meta {
+    display: flex; gap: 6px; margin-top: 10px;
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--ink-soft); letter-spacing: 0.06em;
+  }
+  .ph-meta .sep { color: var(--line); }
+  .ph-squad-row {
+    display: flex; padding: 0 20px 14px; align-items: center; gap: 10px;
+  }
+  .ph-squad-row .av { display: flex; }
+  .ph-squad-row .av span {
+    width: 22px; height: 22px; border-radius: 50%; margin-left: -5px;
+    border: 2px solid var(--paper); color: var(--card);
+    display: grid; place-items: center; font-size: 9px; font-weight: 600;
+  }
+  .ph-squad-row .av span:first-child { margin-left: 0; }
+  .ph-day {
+    margin: 0 18px 10px; padding: 12px;
+    background: var(--card); border: 1px solid var(--line-soft);
+    border-radius: 14px;
+  }
+  .ph-day-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .ph-day-head .d {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 14px; color: var(--ink);
+  }
+  .ph-day-head .num {
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--primary); letter-spacing: 0.15em;
+  }
+  .ph-event {
+    display: flex; gap: 8px; padding: 5px 0;
+    border-top: 1px dashed var(--line-soft);
+    font-size: 11px;
+  }
+  .ph-event:first-of-type { border-top: none; padding-top: 0; }
+  .ph-event .time {
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--ink-mute); width: 36px; flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .ph-event .what { color: var(--ink); font-weight: 500; }
+  .ph-event .who { color: var(--ink-soft); font-size: 9px; margin-top: 1px;}
+
+  .feat-list {
+    display: flex; flex-direction: column; gap: 10px;
+    margin: 28px 0 0; padding: 0 24px; list-style: none;
+  }
+  .feat-list li {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px; border-radius: 14px;
+    background: var(--card); border: 1px solid var(--line-soft);
+  }
+  .feat-list .ico {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--card-alt); display: grid; place-items: center;
+    flex-shrink: 0; color: var(--primary);
+  }
+  .feat-list b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .feat-list span.desc { color: var(--ink-soft); font-size: 12.5px; line-height: 1.4; }
+
+  /* ===== Features grid ===== */
+  .feat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 24px;
+  }
+  .feat-card {
+    background: var(--card);
+    border: 1px solid var(--line-soft);
+    border-radius: 16px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .feat-card .stamp {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--card-alt);
+    display: grid; place-items: center;
+    color: var(--primary); margin-bottom: 16px;
+    position: relative;
+  }
+  .feat-card.span2 { grid-column: span 2; padding: 22px 18px; }
+  .feat-card.span2 .stamp { background: var(--primary); color: var(--card); width: 44px; height: 44px; }
+  .feat-card h3 {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: 22px; letter-spacing: -0.015em; margin: 0 0 6px;
+    color: var(--ink); line-height: 1.05;
+  }
+  .feat-card.span2 h3 { font-size: 26px; }
+  .feat-card h3 em { font-style: italic; color: var(--primary); }
+  .feat-card p {
+    color: var(--ink-soft); font-size: 13px; line-height: 1.45;
+    margin: 0; text-wrap: pretty;
+  }
+  .feat-card .corner-tag {
+    position: absolute; top: 14px; right: 14px;
+    font-family: var(--font-mono); font-size: 8px;
+    color: var(--ink-mute); letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .feat-card .demo {
+    margin-top: 16px;
+    border-radius: 10px; overflow: hidden;
+  }
+  .demo-expenses {
+    background: var(--card-alt); padding: 12px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .demo-expenses .row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px;
+  }
+  .demo-expenses .row b { font-weight: 600; }
+  .demo-expenses .pos { color: var(--sage); font-family: var(--font-mono); font-size: 12px; }
+  .demo-expenses .neg { color: var(--primary-deep); font-family: var(--font-mono); font-size: 12px; }
+  .demo-expenses .row .meta {
+    color: var(--ink-mute); font-size: 9px; font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+  .demo-map {
+    aspect-ratio: 16 / 8;
+    background: var(--g-tulum);
+    position: relative; border-radius: 10px;
+  }
+  .demo-map .pin {
+    position: absolute; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--card); box-shadow: 0 0 0 2px var(--primary);
+  }
+  .demo-map .pin::after {
+    content: ""; position: absolute; inset: 2.5px;
+    background: var(--primary); border-radius: 50%;
+  }
+
+  /* ===== Split visual ===== */
+  .split-visual {
+    background: var(--card); border: 1px solid var(--line-soft);
+    border-radius: 20px; padding: 22px 20px;
+    margin: 0 24px;
+  }
+  .split-bar {
+    height: 18px; border-radius: 5px; overflow: hidden;
+    display: flex; margin: 14px 0 22px;
+  }
+  .split-bar div { height: 100%; }
+  .split-rows { display: flex; flex-direction: column; gap: 8px; }
+  .split-row {
+    display: grid; grid-template-columns: 32px 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 10px 0; border-top: 1px dashed var(--line-soft);
+  }
+  .split-row:first-child { border-top: none; }
+  .split-row .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--card);
+    font-size: 11px; font-weight: 600;
+  }
+  .split-row .name { font-weight: 500; font-size: 14px; }
+  .split-row .name span {
+    display: block; font-family: var(--font-mono); font-size: 9.5px;
+    color: var(--ink-mute); letter-spacing: 0.04em; font-weight: 400;
+    margin-top: 1px;
+  }
+  .split-row .amt {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+  }
+  .split-row .amt.owe { color: var(--primary-deep); }
+  .split-row .amt.get { color: var(--sage); }
+  .split-summary {
+    background: var(--ink); color: var(--card);
+    border-radius: 12px; padding: 16px 18px;
+    margin-top: 18px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .split-summary .label {
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.22em; opacity: 0.7;
+  }
+  .split-summary .v {
+    font-family: var(--font-display); font-style: italic; font-size: 22px;
+    letter-spacing: -0.01em; margin-top: 2px;
+  }
+  .split-summary .arr {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.15em; opacity: 0.75;
+  }
+
+  /* ===== How it works ===== */
+  .how {
+    background: var(--card);
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .how-steps {
+    padding: 0 24px;
+    position: relative;
+  }
+  .how-line {
+    position: absolute; left: calc(24px + 30px); top: 30px; bottom: 30px;
+    width: 1px;
+    background: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 5px, transparent 5px, transparent 11px);
+    z-index: 0;
+  }
+  .step {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 60px 1fr; gap: 18px;
+    padding: 8px 0 28px;
+  }
+  .step .badge {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: var(--paper);
+    border: 1px dashed var(--primary);
+    color: var(--primary);
+    display: grid; place-items: center;
+    font-family: var(--font-display); font-style: italic; font-size: 24px;
+    position: relative;
+  }
+  .step .badge::after {
+    content: ""; position: absolute; inset: 5px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+  }
+  .step h3 {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: 22px; letter-spacing: -0.015em; margin: 4px 0 6px;
+  }
+  .step p {
+    color: var(--ink-soft); font-size: 13.5px; line-height: 1.5;
+    margin: 0 0 8px;
+  }
+  .step .tag {
+    display: inline-block;
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.18em; color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  /* ===== Testimonials ===== */
+  .voices {
+    background: var(--paper-alt);
+  }
+  .voices-scroll {
+    display: flex; gap: 14px;
+    padding: 0 24px 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .voices-scroll::-webkit-scrollbar { display: none; }
+  .voice {
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+    background: var(--card); border: 1px solid var(--line-soft);
+    border-radius: 16px; padding: 22px;
+    display: flex; flex-direction: column; gap: 16px;
+    transform: rotate(var(--r, 0));
+  }
+  .voice:nth-child(1) { --r: -0.8deg; }
+  .voice:nth-child(2) { --r: 0.6deg; }
+  .voice:nth-child(3) { --r: -0.5deg; }
+  .voice q {
+    font-family: var(--font-display); font-size: 19px;
+    line-height: 1.25; color: var(--ink); letter-spacing: -0.01em;
+    font-style: italic;
+    quotes: "“" "”";
+  }
+  .voice q::before { content: open-quote; color: var(--primary); }
+  .voice q::after { content: close-quote; color: var(--primary); }
+  .voice-by {
+    display: flex; align-items: center; gap: 12px;
+    padding-top: 14px; border-top: 1px dashed var(--line);
+  }
+  .voice-by .av {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--card);
+    font-weight: 600; font-size: 12px;
+  }
+  .voice-by .who { font-size: 13px; }
+  .voice-by .who b { display: block; }
+  .voice-by .who span {
+    font-family: var(--font-mono); font-size: 9.5px;
+    color: var(--ink-mute); letter-spacing: 0.06em;
+  }
+  .voices-hint {
+    text-align: center; margin-top: 16px;
+    font-family: var(--font-mono); font-size: 9px;
+    letter-spacing: 0.22em; color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+
+  /* ===== PWA install ===== */
+  .install {
+    background: var(--ink); color: var(--card);
+  }
+  .install .eyebrow { color: rgba(252,248,238,0.55); }
+  .install h2 {
+    font-family: var(--font-display); font-weight: 400;
+    color: var(--card);
+    font-size: 36px;
+    line-height: 1.02; letter-spacing: -0.025em;
+    margin: 14px 0 14px;
+    text-wrap: balance;
+  }
+  .install h2 .ital { font-style: italic; color: var(--primary); }
+  .install p.lead {
+    color: rgba(252,248,238,0.72); font-size: 15px; line-height: 1.5;
+    margin: 0;
+  }
+  .homescreen-shell {
+    padding: 36px 24px 0;
+    display: flex; justify-content: center;
+  }
+  .homescreen {
+    width: 240px; height: 480px;
+    border-radius: 36px; padding: 10px;
+    background: linear-gradient(160deg, #2A2720 0%, #171511 100%);
+    box-shadow: 0 40px 70px -28px rgba(0,0,0,0.7);
+    position: relative;
+  }
+  .homescreen-inner {
+    width: 100%; height: 100%; border-radius: 28px;
+    background: var(--g-lisbon);
+    padding: 26px 18px 14px;
+    position: relative; overflow: hidden;
+  }
+  .homescreen-inner::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.35) 100%);
+  }
+  .hs-time {
+    text-align: center; color: var(--card);
+    font-family: var(--font-display); font-style: italic;
+    font-size: 50px; line-height: 1; letter-spacing: -0.02em;
+    margin-bottom: 2px;
+    position: relative;
+  }
+  .hs-date {
+    text-align: center;
+    font-family: var(--font-mono); font-size: 10px;
+    color: rgba(252,248,238,0.85); letter-spacing: 0.18em;
+    text-transform: uppercase;
+    position: relative;
+    margin-bottom: 28px;
+  }
+  .hs-apps {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    position: relative;
+  }
+  .hs-app {
+    text-align: center;
+    color: var(--card);
+    font-size: 9px;
+  }
+  .hs-app .ic {
+    width: 42px; height: 42px; border-radius: 11px;
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(20px);
+    margin: 0 auto 4px;
+    display: grid; place-items: center;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .hs-app.squad .ic {
+    background: var(--card);
+    color: var(--primary);
+    font-family: var(--font-display); font-style: italic;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+  .hs-app .lab { text-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+  .hs-dock {
+    position: absolute; bottom: 10px; left: 18px; right: 18px;
+    height: 30px; border-radius: 15px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .install-steps {
+    margin-top: 36px;
+    border-top: 1px solid #2A2720;
+  }
+  .install-step {
+    display: grid; grid-template-columns: 44px 1fr auto;
+    gap: 16px; align-items: center;
+    padding: 16px 0; border-bottom: 1px solid #2A2720;
+  }
+  .install-step .n {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 28px; color: var(--primary);
+  }
+  .install-step .t {
+    font-size: 14px; font-weight: 500; color: var(--card);
+  }
+  .install-step .t span {
+    display: block; font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.1em; color: rgba(252,248,238,0.55); margin-top: 3px;
+    font-weight: 400;
+  }
+  .install-step .kbd {
+    font-family: var(--font-mono); font-size: 10px;
+    padding: 5px 9px; border: 1px solid #3A352C; border-radius: 5px;
+    color: rgba(252,248,238,0.6); letter-spacing: 0.1em;
+  }
+
+  /* ===== Final CTA ===== */
+  .final {
+    padding: 32px 24px 64px;
+    background: var(--paper);
+  }
+  .final-inner {
+    background: var(--g-amalfi);
+    border-radius: 24px;
+    padding: 56px 28px 36px;
+    color: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+  .final-inner::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.3) 100%);
+  }
+  .final-inner > * { position: relative; }
+  .final-inner .eyebrow { color: rgba(252,248,238,0.75); }
+  .final-inner h2 {
+    font-family: var(--font-display); font-weight: 400;
+    font-style: italic;
+    font-size: 42px; line-height: 0.98;
+    letter-spacing: -0.025em;
+    margin: 14px 0 16px;
+    color: var(--card);
+    text-wrap: balance;
+  }
+  .final-inner p {
+    color: rgba(252,248,238,0.88); font-size: 15px; line-height: 1.5;
+    margin: 0 0 24px; text-wrap: pretty;
+  }
+  .final-stamp {
+    position: absolute; top: 18px; right: 18px;
+    width: 86px; height: 86px; border-radius: 50%;
+    border: 1.2px dashed rgba(252,248,238,0.7);
+    color: rgba(252,248,238,0.95);
+    display: grid; place-items: center; text-align: center;
+    transform: rotate(8deg);
+    font-family: var(--font-mono); font-size: 8px;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    line-height: 1.5;
+  }
+  .final-stamp .ss-big {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 28px; letter-spacing: -0.01em; line-height: 1;
+    color: var(--card); margin-bottom: 4px;
+    text-transform: none;
+  }
+  .final-inner .ctas { display: flex; flex-direction: column; gap: 10px; }
+  .final-inner .btn-primary { background: var(--card); color: var(--ink); }
+  .final-inner .btn-primary:active { background: var(--paper); }
+  .final-inner .btn-ghost {
+    background: rgba(252,248,238,0.12); color: var(--card);
+    border: 1px solid rgba(252,248,238,0.32);
+  }
+
+  /* ===== Footer ===== */
+  .foot {
+    background: var(--paper);
+    padding: 12px 24px 40px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .foot-tag {
+    font-family: var(--font-display); font-style: italic;
+    font-size: 22px; color: var(--ink); margin: 24px 0 18px;
+    line-height: 1.15; max-width: 16ch;
+  }
+  .foot-cols {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 28px; padding: 24px 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .foot-cols h4 {
+    font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--ink-mute); margin: 0 0 12px; font-weight: 500;
+  }
+  .foot-cols ul {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .foot-cols li a { font-size: 13px; color: var(--ink-soft); }
+  .foot-bot {
+    border-top: 1px dashed var(--line);
+    padding-top: 18px; margin-top: 8px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em;
+    color: var(--ink-mute); text-transform: uppercase;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+
+  /* ===== Reveal anim ===== */
+  .rv { opacity: 1; transform: none; }
+  .rv.staged { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+  .rv.in { opacity: 1; transform: translateY(0); }
+
+  /* ===== Desktop preview ===== */
+  @media (min-width: 500px) {
+    html {
+      background:
+        radial-gradient(ellipse at 50% 0%, #3A311F 0%, #1F1A12 60%, #14110B 100%);
+      min-height: 100vh;
+    }
+    body {
+      margin: 24px auto;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow:
+        0 60px 120px -30px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(255,255,255,0.04);
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<header class="nav" data-screen-label="Nav">
+  <div class="nav-inner">
+    <a href="#" class="brand">
+      <span class="brand-stamp">S</span>
+      <span>squad<span class="accent">stay</span></span>
+    </a>
+    <a href="/login?mode=signup" class="btn btn-primary">Open app</a>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero" data-screen-label="01 Hero">
+  <div class="hero-eyebrow-row">
+    <div class="line"></div>
+    <div class="hero-dots"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="eyebrow">Group · holidays · simplified</div>
+    <div class="line"></div>
+  </div>
+  <h1>
+    Plan your <br/>
+    group trip, <span class="coral">together.</span>
+  </h1>
+  <p class="lead">
+    Flights, hotel, itinerary, expenses, and places to explore — all in
+    one app your whole squad can actually use.
+  </p>
+  <div class="hero-ctas">
+    <a href="/login?mode=signup" class="btn btn-primary btn-block">Start planning, free →</a>
+    <a href="#install" class="btn btn-ghost btn-block">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="0.5" fill="currentColor"/></svg>
+      Add to home screen
+    </a>
+  </div>
+  <div class="hero-meta">
+    <span>Free forever</span>
+    <span class="mdot"></span>
+    <span>Works offline</span>
+    <span class="mdot"></span>
+    <span>No app store</span>
+  </div>
+
+  <div class="stack-wrap">
+    <div class="stack">
+      <div class="pc pc-1">
+        <div class="photo" style="background: var(--g-kyoto);">
+          <div class="stamp-on-card">Cherry blossom</div>
+        </div>
+        <div class="caption">
+          <span class="cap-name">Kyoto, spring</span>
+          <span class="cap-meta">£412 pp</span>
+        </div>
+      </div>
+      <div class="pc pc-2">
+        <div class="photo" style="background: var(--g-tulum);">
+          <div class="stamp-on-card">7 nights</div>
+        </div>
+        <div class="caption">
+          <span class="cap-name">Tulum &amp; coast</span>
+          <span class="cap-meta">Booked</span>
+        </div>
+      </div>
+      <div class="pc pc-3">
+        <div class="photo" style="background: var(--g-lisbon);">
+          <div class="stamp-on-card">Trip 042 · 5d</div>
+        </div>
+        <div class="caption">
+          <span class="cap-name">Lisbon, 2026</span>
+          <span class="cap-meta">JM · SK · AL · +2</span>
+        </div>
+      </div>
+
+      <div class="squad-chip">
+        <span class="ava">
+          <span style="background:#E0533A">JM</span>
+          <span style="background:#E89AAE">SK</span>
+          <span style="background:#6FA4C2">AL</span>
+          <span style="background:#D9923B">TR</span>
+          <span style="background:#5B7556">MN</span>
+        </span>
+        <span class="label">The <b>squad</b> · all in</span>
+      </div>
+
+      <div class="price-stamp">
+        <div class="ps-eye">Split evenly</div>
+        <div class="ps-big">£87 each</div>
+        <div class="ps-sub">5 ppl · settled</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== MARQUEE ===== -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>
+      Lisbon <span class="star">✦</span>
+      Kyoto <span class="star">✦</span>
+      Amalfi <span class="star">✦</span>
+      Tulum <span class="star">✦</span>
+      Reykjavík <span class="star">✦</span>
+      Marrakech <span class="star">✦</span>
+      Patagonia <span class="star">✦</span>
+      Ubud <span class="star">✦</span>
+      Porto <span class="star">✦</span>
+      Hanoi <span class="star">✦</span>
+    </span>
+    <span>
+      Lisbon <span class="star">✦</span>
+      Kyoto <span class="star">✦</span>
+      Amalfi <span class="star">✦</span>
+      Tulum <span class="star">✦</span>
+      Reykjavík <span class="star">✦</span>
+      Marrakech <span class="star">✦</span>
+      Patagonia <span class="star">✦</span>
+      Ubud <span class="star">✦</span>
+      Porto <span class="star">✦</span>
+      Hanoi <span class="star">✦</span>
+    </span>
+  </div>
+</div>
+
+<!-- ===== SHOWCASE ===== -->
+<section class="showcase" data-screen-label="02 Showcase">
+  <div class="section-head rv">
+    <div class="eyebrow">Always synced</div>
+    <h2 class="section-title">The trip <span class="ital" style="color:var(--primary)">lives</span> where everyone is.</h2>
+    <p class="section-sub">
+      Open the app and you're on day three in Lisbon, looking at the same plan
+      as Sam, Alex, and the rest. Edit a stop, add a flight, drop a pin —
+      everyone sees it in real time.
+    </p>
+  </div>
+
+  <div class="ph-shell rv">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="ph-status">
+          <span>9:41</span>
+          <span class="ind">
+            <svg width="13" height="9" viewBox="0 0 14 10" fill="currentColor"><rect x="0" y="6" width="2" height="4"/><rect x="3" y="4" width="2" height="6"/><rect x="6" y="2" width="2" height="8"/><rect x="9" y="0" width="2" height="10"/></svg>
+            <svg width="20" height="11" viewBox="0 0 22 12" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="18" height="11" rx="2"/><rect x="2" y="2" width="14" height="8" rx="1" fill="currentColor"/><rect x="19.5" y="4" width="1.5" height="4" fill="currentColor"/></svg>
+          </span>
+        </div>
+        <div class="ph-header">
+          <div class="ph-eye">Trip · 042</div>
+          <div class="ph-title">Lisbon, together</div>
+          <div class="ph-meta">
+            <span>MAR 14 → 19</span>
+            <span class="sep">·</span>
+            <span>5 NIGHTS</span>
+          </div>
+        </div>
+        <div class="ph-squad-row">
+          <span class="av">
+            <span style="background:#E0533A">JM</span>
+            <span style="background:#E89AAE">SK</span>
+            <span style="background:#6FA4C2">AL</span>
+            <span style="background:#D9923B">TR</span>
+            <span style="background:#5B7556">MN</span>
+          </span>
+          <span style="font-size:10px; color:var(--ink-soft); font-family:var(--font-mono);">5/5 in</span>
+        </div>
+
+        <div class="ph-day">
+          <div class="ph-day-head">
+            <span class="d">Day two · Alfama</span>
+            <span class="num">15 MAR</span>
+          </div>
+          <div class="ph-event">
+            <span class="time">09:30</span>
+            <div>
+              <div class="what">Pastéis de Belém</div>
+              <div class="who">Jamie · breakfast</div>
+            </div>
+          </div>
+          <div class="ph-event">
+            <span class="time">12:00</span>
+            <div>
+              <div class="what">Tram 28 → Castelo</div>
+              <div class="who">Sam · meet Praça</div>
+            </div>
+          </div>
+          <div class="ph-event">
+            <span class="time">19:30</span>
+            <div>
+              <div class="what">Park Bar · sunset</div>
+              <div class="who">Alex · res for 5</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ph-day">
+          <div class="ph-day-head">
+            <span class="d">Day three · Sintra</span>
+            <span class="num">16 MAR</span>
+          </div>
+          <div class="ph-event">
+            <span class="time">08:15</span>
+            <div>
+              <div class="what">Train from Rossio</div>
+              <div class="who">Group · 35min</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="feat-list rv">
+    <li>
+      <div class="ico">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+      <div>
+        <b>Real-time itinerary</b>
+        <span class="desc">Day-by-day plan everyone can edit. Sub-30-second sync.</span>
+      </div>
+    </li>
+    <li>
+      <div class="ico">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6h20M2 12h20M2 18h20"/><circle cx="6" cy="6" r="1.5" fill="currentColor"/><circle cx="10" cy="12" r="1.5" fill="currentColor"/><circle cx="16" cy="18" r="1.5" fill="currentColor"/></svg>
+      </div>
+      <div>
+        <b>Polls without the chaos</b>
+        <span class="desc">"Beach or city walk?" Settle it in 30 seconds.</span>
+      </div>
+    </li>
+    <li>
+      <div class="ico">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6"/><path d="M3 12h18v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      </div>
+      <div>
+        <b>Boarding cards, side by side</b>
+        <span class="desc">Everyone's flight on one screen. Gate changes live.</span>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section id="features" data-screen-label="03 Features">
+  <div class="section-head rv">
+    <div class="eyebrow">Everything you need</div>
+    <h2 class="section-title">Built for how <span class="ital">squads</span> actually travel.</h2>
+    <p class="section-sub">
+      Six tools, one trip. The simple version of every thing you've ever
+      argued about in a group chat at 11pm.
+    </p>
+  </div>
+
+  <div class="feat-grid">
+    <!-- Big -->
+    <div class="feat-card span2 rv">
+      <div class="corner-tag">01 · Money</div>
+      <div class="stamp">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <h3>Split <em>expenses</em>, settle before you land.</h3>
+      <p>Log a cost, pick who's in, done. SquadStay does the math and tells everyone who pays whom — with the fewest transfers.</p>
+      <div class="demo demo-expenses">
+        <div class="row"><b>Cab from airport</b><span class="meta">JM · split 5</span><span class="neg">−£24</span></div>
+        <div class="row"><b>Groceries day 1</b><span class="meta">SK · split 4</span><span class="neg">−£18</span></div>
+        <div class="row"><b>Hotel deposit</b><span class="meta">AL · split 5</span><span class="neg">−£60</span></div>
+        <div class="row"><b>Dinner Alfama</b><span class="meta">MN · split 5</span><span class="pos">+£12</span></div>
+      </div>
+    </div>
+
+    <div class="feat-card rv">
+      <div class="corner-tag">02</div>
+      <div class="stamp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92l-9 5.08L4 17V9l9-5 9 5z"/><path d="M13 22V13M22 9l-9 4L4 9"/></svg>
+      </div>
+      <h3>Flights, all in one place.</h3>
+      <p>Forward the confirmation. Gates tracked.</p>
+    </div>
+
+    <div class="feat-card rv">
+      <div class="corner-tag">03</div>
+      <div class="stamp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><rect x="9" y="9" width="2" height="2"/><rect x="13" y="9" width="2" height="2"/></svg>
+      </div>
+      <h3>Stay details, kept.</h3>
+      <p>Address, Wi-Fi, check-in code.</p>
+    </div>
+
+    <div class="feat-card span2 rv">
+      <div class="corner-tag">04 · Discover</div>
+      <div class="stamp">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-7.5-8-13a8 8 0 1 1 16 0c0 5.5-8 13-8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+      </div>
+      <h3>Places to go, <em>built by you</em>.</h3>
+      <p>Drop pins on bars, beaches, viewpoints. The map fills up as the squad explores.</p>
+      <div class="demo demo-map">
+        <div class="pin" style="top: 30%; left: 22%;"></div>
+        <div class="pin" style="top: 55%; left: 45%;"></div>
+        <div class="pin" style="top: 38%; left: 68%;"></div>
+        <div class="pin" style="top: 70%; left: 75%;"></div>
+        <div class="pin" style="top: 22%; left: 58%;"></div>
+      </div>
+    </div>
+
+    <div class="feat-card rv">
+      <div class="corner-tag">05</div>
+      <div class="stamp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      </div>
+      <h3>Plan that survives.</h3>
+      <p>Drag stops, swap days, mark tentative.</p>
+    </div>
+
+    <div class="feat-card rv">
+      <div class="corner-tag">06</div>
+      <div class="stamp">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><circle cx="17" cy="10" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>
+      </div>
+      <h3>Invite the crew.</h3>
+      <p>Email, magic link, set roles.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SPLIT ===== -->
+<section data-screen-label="04 Split" style="padding-top: 0;">
+  <div class="section-head rv">
+    <div class="eyebrow">Settling up · math, gone</div>
+    <h2 class="section-title">Three transfers. <span class="ital">Squad-wide.</span> Done.</h2>
+    <p class="section-sub">
+      Five people, three taps, even. SquadStay finds the minimum number of
+      transfers — no everyone-pays-everyone chaos.
+    </p>
+  </div>
+
+  <div class="split-visual rv">
+    <div class="eyebrow">Trip 042 · Lisbon · final</div>
+    <div class="split-bar">
+      <div style="background: var(--primary); width: 28%;"></div>
+      <div style="background: var(--amber); width: 22%;"></div>
+      <div style="background: var(--sage); width: 20%;"></div>
+      <div style="background: var(--sky); width: 18%;"></div>
+      <div style="background: var(--pink); width: 12%;"></div>
+    </div>
+    <div class="split-rows">
+      <div class="split-row">
+        <span class="av" style="background:#E0533A;">JM</span>
+        <span class="name">Jamie<span>paid £312 · spent £210</span></span>
+        <span class="amt get">+£102</span>
+      </div>
+      <div class="split-row">
+        <span class="av" style="background:#E89AAE;">SK</span>
+        <span class="name">Sam<span>paid £180 · spent £210</span></span>
+        <span class="amt owe">−£30</span>
+      </div>
+      <div class="split-row">
+        <span class="av" style="background:#6FA4C2;">AL</span>
+        <span class="name">Alex<span>paid £140 · spent £210</span></span>
+        <span class="amt owe">−£70</span>
+      </div>
+      <div class="split-row">
+        <span class="av" style="background:#D9923B;">TR</span>
+        <span class="name">Taylor<span>paid £88 · spent £210</span></span>
+        <span class="amt owe">−£122</span>
+      </div>
+      <div class="split-row">
+        <span class="av" style="background:#5B7556;">MN</span>
+        <span class="name">Mina<span>paid £330 · spent £210</span></span>
+        <span class="amt get">+£120</span>
+      </div>
+    </div>
+    <div class="split-summary">
+      <div>
+        <div class="label">3 TRANSFERS</div>
+        <div class="v">£1,050 squared</div>
+      </div>
+      <div class="arr">TAP →</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how" id="how" data-screen-label="05 How">
+  <div class="section-head rv">
+    <div class="eyebrow">How it works</div>
+    <h2 class="section-title">Up and running in <span class="ital">minutes</span>.</h2>
+  </div>
+  <div class="how-steps rv">
+    <div class="how-line"></div>
+    <div class="step">
+      <div class="badge">01</div>
+      <div>
+        <h3>Create the trip</h3>
+        <p>Name it. Pick the destination, set dates, drop a cover photo. 20 seconds.</p>
+        <span class="tag">⏱ 20 seconds</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="badge">02</div>
+      <div>
+        <h3>Invite the squad</h3>
+        <p>Email or magic-link the crew. They land straight in the trip — no signup hoops.</p>
+        <span class="tag">✉ One email each</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="badge">03</div>
+      <div>
+        <h3>Plan together</h3>
+        <p>Everyone adds flights, hotel, itinerary, places, expenses. The trip writes itself.</p>
+        <span class="tag">✈ All hands on deck</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== INSTALL ===== -->
+<section class="install" id="install" data-screen-label="07 Install">
+  <div class="section-head rv">
+    <div class="eyebrow" style="color: rgba(252,248,238,0.55);">Installable PWA</div>
+    <h2>Works like an <span class="ital">app</span>.</h2>
+    <p class="lead">
+      No app store, no 80MB download. Add SquadStay to your home screen
+      and it behaves like the native thing — offline-ready, push-notified.
+    </p>
+  </div>
+
+  <div class="homescreen-shell rv">
+    <div class="homescreen">
+      <div class="homescreen-inner">
+        <div class="hs-time">9:41</div>
+        <div class="hs-date">Wed, mar 11</div>
+        <div class="hs-apps">
+          <div class="hs-app squad"><div class="ic">S</div><div class="lab">SquadStay</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Maps</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Camera</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Wallet</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Notes</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Photos</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Mail</div></div>
+          <div class="hs-app"><div class="ic"></div><div class="lab">Music</div></div>
+        </div>
+        <div class="hs-dock"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 0 24px;">
+    <div class="install-steps">
+      <div class="install-step">
+        <span class="n">01</span>
+        <div class="t">Open squadstay.co.uk
+          <span>Safari iOS · Chrome Android</span>
+        </div>
+        <span class="kbd">URL</span>
+      </div>
+      <div class="install-step">
+        <span class="n">02</span>
+        <div class="t">Tap Share → "Add to Home Screen"
+          <span>Or the menu on Android</span>
+        </div>
+        <span class="kbd">⇧</span>
+      </div>
+      <div class="install-step">
+        <span class="n">03</span>
+        <div class="t">Open it like any app
+          <span>Offline. Push. Fullscreen.</span>
+        </div>
+        <span class="kbd">↵</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FINAL CTA ===== -->
+<section class="final" data-screen-label="08 Final">
+  <div class="final-inner">
+    <div class="final-stamp">
+      <div>
+        <div class="ss-big">SS</div>
+        EST<br/>2026
+      </div>
+    </div>
+    <div class="eyebrow">Where are you off to?</div>
+    <h2>Plan something <br/>together <br/>this weekend.</h2>
+    <p>
+      Free forever for trips up to 8 people. No card, no app store.
+      Just open it and start.
+    </p>
+    <div class="ctas">
+      <a href="/login?mode=signup" class="btn btn-primary btn-block">Start a trip → free</a>
+      <a href="/login" class="btn btn-ghost btn-block">Already a member? Sign in</a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="foot" data-screen-label="09 Footer">
+  <a href="#" class="brand">
+    <span class="brand-stamp">S</span>
+    <span>squad<span class="accent">stay</span></span>
+  </a>
+  <div class="foot-tag ital">where are we off to, together?</div>
+  <div class="foot-cols">
+    <div>
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="/login">Open the app</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Quiet stuff</h4>
+      <ul>
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bot">
+    <span>© 2026 SquadStay</span>
+    <span>v 0.4</span>
+  </div>
+</footer>
+
+<script>
+  // Only stage reveal anim for elements below the fold — visible ones stay visible.
+  const els = document.querySelectorAll('.rv');
+  els.forEach(el => {
+    const r = el.getBoundingClientRect();
+    if (r.top > window.innerHeight - 80) el.classList.add('staged');
+  });
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.rv.staged').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
+
