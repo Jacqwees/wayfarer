@@ -41,7 +41,6 @@ function formatDateRange(start: string, end: string) {
   return `${s.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} → ${e.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · ${nights}n`
 }
 
-function pad(n: number) { return String(n).padStart(2, '0') }
 
 function useCountdown(startDate: string, endDate: string, departureDatetime: string | null) {
   const [, setTick] = useState(0)

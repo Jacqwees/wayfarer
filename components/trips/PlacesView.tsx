@@ -530,7 +530,7 @@ export default function PlacesView({ tripId, savedPlaces: initial, destination, 
                         </div>
                       </div>
                       <button
-                        onClick={e => { e.stopPropagation(); saved && savedRecord ? handleRemove(savedRecord.id, savedRecord.google_place_id) : handleSave(r) }}
+                        onClick={e => { e.stopPropagation(); if (saved && savedRecord) { handleRemove(savedRecord.id, savedRecord.google_place_id) } else { handleSave(r) } }}
                         disabled={isPending}
                         className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
                         style={{ background: saved ? 'rgba(224,83,58,0.1)' : 'hsl(var(--secondary))' }}>

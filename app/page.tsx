@@ -584,7 +584,7 @@ export default function LandingPage() {
                   { n: '1', title: 'Open the URL', sub: 'squadstay.co.uk in Safari or Chrome' },
                   { n: '2', title: 'Tap Share menu', sub: 'iOS: Share button · Android: browser menu' },
                   { n: '3', title: 'Add to Home Screen', sub: 'Confirm and it\'s on your dock' },
-                ].map(({ n, title, sub }, i) => (
+                ].map(({ n, title, sub }) => (
                   <div key={n} style={{ display: 'grid', gridTemplateColumns: '48px 1fr', gap: 20, alignItems: 'center', padding: '20px 0', borderBottom: '1px solid #2A2720' }}>
                     <span style={{ fontFamily: '"Newsreader", serif', fontStyle: 'italic', fontSize: 34, color: '#E0533A' }}>{n}</span>
                     <div>

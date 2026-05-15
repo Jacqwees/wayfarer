@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Loader2, X, RotateCcw, Copy, Check, Trash2 } from 'lucide-react'
 import { sendInvitation, cancelInvitation, resendInvitationEmail, generateInviteLink, revokeInviteLink } from '@/app/actions/invitations'
@@ -14,7 +13,6 @@ export default function InviteForm({ tripId, tripName, pendingInvitations: initi
   pendingInvitations: PendingInvitation[]
   existingInviteLink: string | null
 }) {
-  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'member' | 'viewer'>('member')
